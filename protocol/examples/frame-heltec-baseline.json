@@ -1,0 +1,27 @@
+{
+  "protocol": "emote/1",
+  "kind": "frame",
+  "seq": 0,
+  "source": {"id": "host", "session": "baseline"},
+  "surface_id": "youandeye-heltec-01",
+  "affect": {
+    "state": "neutral",
+    "intensity": 0.45,
+    "valence": 0,
+    "arousal": 0.25
+  },
+  "behavior": {
+    "mode": "idle",
+    "autonomy": true,
+    "energy": 0.3,
+    "engagement": 0.4,
+    "speaking": 0
+  },
+  "gaze": {"target": "wander"},
+  "utterance": {"mode": "none", "sound": "none"},
+  "channel_policy": {"eyes": "render", "utterance": "render"},
+  "ttl_ms": 600000,
+  "decay": {"curve": "ease_out", "duration_ms": 600},
+  "priority": "ambient",
+  "cause": "safe autonomous baseline"
+}

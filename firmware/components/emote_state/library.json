@@ -1,0 +1,7 @@
+{
+  "name": "youandeye-emote-state",
+  "version": "0.1.0",
+  "build": {
+    "includeDir": "include"
+  }
+}

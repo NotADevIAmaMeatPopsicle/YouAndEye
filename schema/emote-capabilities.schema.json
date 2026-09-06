@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://youandeye.local/schema/emote-capabilities.schema.json",
+  "title": "emote/1 surface capability descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "kind", "surface", "channels", "affects", "limits", "transports"],
+  "properties": {
+    "protocol": {"const": "emote/1"},
+    "kind": {"const": "capabilities"},
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "renderer", "firmware"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._:-]+$"},
+        "name": {"type": "string", "minLength": 1, "maxLength": 96},
+        "renderer": {"type": "string", "minLength": 1, "maxLength": 64},
+        "firmware": {"type": "string", "minLength": 1, "maxLength": 32}
+      }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "count", "features"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[a-z][a-z0-9_-]{0,31}$"},
+          "kind": {"enum": ["dual_raster_eyes", "text_matrix", "mouth", "audio", "rgb", "servo", "terminal"]},
+          "count": {"type": "integer", "minimum": 1, "maximum": 256},
+          "width": {"type": "integer", "minimum": 1, "maximum": 8192},
+          "height": {"type": "integer", "minimum": 1, "maximum": 8192},
+          "color_model": {"enum": ["mono", "rgb565", "rgb888", "symbolic", "none"]},
+          "max_fps": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
+          "features": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1, "maxLength": 48, "pattern": "^[a-z][a-z0-9_-]{0,47}$"}
+          },
+          "glyphs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1, "maxLength": 32}
+          }
+        }
+      }
+    },
+    "affects": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
+          "error", "listening", "speaking", "working", "success", "playful", "encouraging"
+        ]
+      }
+    },
+    "sequences": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["attention", "acknowledge", "celebrate", "reassure", "error"]}
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_frame_hz", "max_utterance_chars", "visible_response_budget_ms"],
+      "properties": {
+        "max_frame_hz": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
+        "max_utterance_chars": {"type": "integer", "minimum": 0, "maximum": 4096},
+        "visible_response_budget_ms": {"type": "integer", "minimum": 1, "maximum": 5000}
+      }
+    },
+    "transports": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["websocket", "http", "serial"]}
+    },
+    "inputs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["button", "touch", "wake", "presence", "fault"]}
+    },
+    "extensions": {"type": "object", "additionalProperties": true}
+  }
+}

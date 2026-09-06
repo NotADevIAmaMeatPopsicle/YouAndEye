@@ -1,0 +1,25 @@
+{
+  "protocol": "emote/1",
+  "kind": "frame",
+  "seq": 0,
+  "source": {"id": "host", "session": "baseline"},
+  "affect": {
+    "state": "neutral",
+    "intensity": 0.45,
+    "valence": 0,
+    "arousal": 0.25
+  },
+  "behavior": {
+    "mode": "idle",
+    "autonomy": true,
+    "energy": 0.3,
+    "engagement": 0.4,
+    "speaking": 0
+  },
+  "gaze": {"target": "wander"},
+  "utterance": {"mode": "static", "text": "HELLO", "sound": "none"},
+  "ttl_ms": 600000,
+  "decay": {"curve": "ease_out", "duration_ms": 1200},
+  "priority": "ambient",
+  "cause": "local baseline"
+}

@@ -1,0 +1,42 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+
+# Python
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+.playwright-cli/
+.pytest_cache/
+.claude/worktrees/
+.codex-remote-attachments/
+.youandeye/
+output/
+final-core-six
+
+# Large reference folders (third-party code for inspiration)
+references/
+Additional Resource/

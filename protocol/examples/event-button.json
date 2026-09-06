@@ -1,0 +1,13 @@
+{
+  "protocol": "emote/1",
+  "kind": "event",
+  "seq": 73,
+  "surface_id": "youandeye-desk-01",
+  "observed_at_ms": 1788558001456,
+  "event": {
+    "type": "button",
+    "name": "primary_press",
+    "value": true
+  },
+  "trace_id": "trace-4412"
+}

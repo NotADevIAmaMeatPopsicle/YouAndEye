@@ -1,0 +1,10 @@
+{
+  "name": "youandeye-eye-renderer",
+  "version": "0.1.0",
+  "build": {
+    "includeDir": "include"
+  },
+  "dependencies": {
+    "youandeye-emote-state": "*"
+  }
+}

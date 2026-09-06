@@ -1,0 +1,45 @@
+{
+  "protocol": "emote/1",
+  "kind": "capabilities",
+  "surface": {
+    "id": "youandeye-heltec-01",
+    "name": "YouAndEye Heltec face",
+    "renderer": "round-friendly-fast",
+    "firmware": "0.1.0"
+  },
+  "channels": [
+    {
+      "id": "eyes",
+      "kind": "dual_raster_eyes",
+      "count": 2,
+      "width": 160,
+      "height": 160,
+      "color_model": "rgb565",
+      "max_fps": 31.2,
+      "features": ["gaze", "lids", "brows", "pupil", "autonomy", "synchronized_blink"]
+    },
+    {
+      "id": "utterance",
+      "kind": "text_matrix",
+      "count": 1,
+      "width": 32,
+      "height": 8,
+      "color_model": "mono",
+      "max_fps": 11.1,
+      "features": ["mouth_shapes", "speaking", "text", "scroll", "icons"],
+      "glyphs": ["ascii-upper", "heart", "check", "left", "right", "level", "burst"]
+    }
+  ],
+  "affects": [
+    "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
+    "error", "listening", "speaking", "working", "success", "playful", "encouraging"
+  ],
+  "sequences": ["attention", "acknowledge", "celebrate", "reassure", "error"],
+  "limits": {
+    "max_frame_hz": 20,
+    "max_utterance_chars": 64,
+    "visible_response_budget_ms": 225
+  },
+  "transports": ["http", "serial"],
+  "inputs": ["fault"]
+}

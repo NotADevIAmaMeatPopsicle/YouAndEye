@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://youandeye.local/schema/emote-event.schema.json",
+  "title": "emote/1 surface event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "kind", "seq", "surface_id", "observed_at_ms", "event"],
+  "properties": {
+    "protocol": {"const": "emote/1"},
+    "kind": {"const": "event"},
+    "seq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+    "surface_id": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._:-]+$"},
+    "observed_at_ms": {"type": "integer", "minimum": 0},
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name"],
+      "properties": {
+        "type": {"enum": ["button", "touch", "wake", "presence", "fault", "ready"]},
+        "name": {"type": "string", "minLength": 1, "maxLength": 48, "pattern": "^[a-z][a-z0-9_-]{0,47}$"},
+        "value": {"type": ["string", "number", "integer", "boolean", "null"]},
+        "detail": {"type": "string", "maxLength": 256}
+      }
+    },
+    "trace_id": {"type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[A-Za-z0-9._:-]+$"},
+    "extensions": {"type": "object", "additionalProperties": true}
+  }
+}

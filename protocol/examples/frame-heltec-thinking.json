@@ -1,0 +1,34 @@
+{
+  "protocol": "emote/1",
+  "kind": "frame",
+  "seq": 1,
+  "source": {"id": "local-app", "session": "example"},
+  "surface_id": "youandeye-heltec-01",
+  "affect": {
+    "state": "thinking",
+    "intensity": 0.7,
+    "valence": 0.1,
+    "arousal": 0.5
+  },
+  "behavior": {
+    "mode": "attentive",
+    "autonomy": true,
+    "energy": 0.42,
+    "engagement": 0.68,
+    "speaking": 0
+  },
+  "gaze": {"target": "away"},
+  "utterance": {
+    "text": "PLEASE WAIT...",
+    "mode": "scroll",
+    "sound": "processing"
+  },
+  "channel_policy": {
+    "eyes": "render",
+    "utterance": "render"
+  },
+  "ttl_ms": 4000,
+  "decay": {"curve": "ease_out", "duration_ms": 1200},
+  "priority": "normal",
+  "cause": "running local search"
+}

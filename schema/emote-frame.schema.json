@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://youandeye.local/schema/emote-frame.schema.json",
+  "title": "emote/1 expression frame",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "kind", "seq", "source", "affect", "ttl_ms", "decay", "priority"],
+  "properties": {
+    "protocol": {"const": "emote/1"},
+    "kind": {"const": "frame"},
+    "seq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "session"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._:-]+$"},
+        "session": {"type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[A-Za-z0-9._:-]+$"},
+        "sent_at_ms": {"type": "integer", "minimum": 0}
+      }
+    },
+    "surface_id": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._:-]+$"},
+    "affect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "intensity", "valence", "arousal"],
+      "properties": {
+        "state": {"$ref": "#/$defs/affectState"},
+        "intensity": {"$ref": "#/$defs/unit"},
+        "valence": {"type": "number", "minimum": -1, "maximum": 1},
+        "arousal": {"$ref": "#/$defs/unit"}
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["idle", "attentive", "tracking", "speaking", "sleepy"]},
+        "autonomy": {"type": "boolean"},
+        "energy": {"$ref": "#/$defs/unit"},
+        "engagement": {"$ref": "#/$defs/unit"},
+        "speaking": {"$ref": "#/$defs/unit"}
+      }
+    },
+    "gaze": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target"],
+          "properties": {"target": {"enum": ["user", "away", "wander"]}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "x", "y"],
+          "properties": {
+            "target": {"const": "point"},
+            "x": {"type": "number", "minimum": -1, "maximum": 1},
+            "y": {"type": "number", "minimum": -1, "maximum": 1}
+          }
+        }
+      ]
+    },
+    "utterance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["none", "static", "scroll", "icon", "speech"]},
+        "text": {"type": "string", "maxLength": 128},
+        "icon": {"type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[a-z0-9_-]+$"},
+        "sound": {"enum": ["none", "attention", "processing", "acknowledge", "success", "error", "celebrate"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"mode": {"enum": ["static", "scroll"]}}, "required": ["mode"]},
+          "then": {"required": ["text"]}
+        },
+        {
+          "if": {"properties": {"mode": {"const": "icon"}}, "required": ["mode"]},
+          "then": {"required": ["icon"]}
+        }
+      ]
+    },
+    "sequence": {"enum": ["attention", "acknowledge", "celebrate", "reassure", "error"]},
+    "channel_policy": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_-]{0,31}$"},
+      "additionalProperties": {"enum": ["auto", "render", "mute"]}
+    },
+    "ttl_ms": {"type": "integer", "minimum": 100, "maximum": 600000},
+    "decay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["curve", "duration_ms"],
+      "properties": {
+        "curve": {"enum": ["hold", "linear", "ease_out"]},
+        "duration_ms": {"type": "integer", "minimum": 0, "maximum": 120000}
+      }
+    },
+    "priority": {"enum": ["ambient", "normal", "alert", "critical"]},
+    "cause": {"type": "string", "maxLength": 256},
+    "trace_id": {"type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[A-Za-z0-9._:-]+$"},
+    "extensions": {"type": "object", "additionalProperties": true}
+  },
+  "$defs": {
+    "unit": {"type": "number", "minimum": 0, "maximum": 1},
+    "affectState": {
+      "enum": [
+        "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
+        "error", "listening", "speaking", "working", "success", "playful", "encouraging"
+      ]
+    }
+  }
+}

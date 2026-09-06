@@ -1,0 +1,45 @@
+{
+  "protocol": "emote/1",
+  "kind": "capabilities",
+  "surface": {
+    "id": "youandeye-desk-01",
+    "name": "YouandEye desk companion",
+    "renderer": "round-friendly",
+    "firmware": "0.1.0"
+  },
+  "channels": [
+    {
+      "id": "eyes",
+      "kind": "dual_raster_eyes",
+      "count": 2,
+      "width": 240,
+      "height": 320,
+      "color_model": "rgb565",
+      "max_fps": 30,
+      "features": ["gaze", "lids", "brows", "pupil", "autonomy"]
+    },
+    {
+      "id": "utterance",
+      "kind": "text_matrix",
+      "count": 1,
+      "width": 32,
+      "height": 8,
+      "color_model": "mono",
+      "max_fps": 30,
+      "features": ["text", "scroll", "icons"],
+      "glyphs": ["ascii-upper", "heart", "question", "exclamation"]
+    }
+  ],
+  "affects": [
+    "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
+    "error", "listening", "speaking", "working", "success", "playful", "encouraging"
+  ],
+  "sequences": ["attention", "acknowledge", "celebrate", "reassure", "error"],
+  "limits": {
+    "max_frame_hz": 20,
+    "max_utterance_chars": 128,
+    "visible_response_budget_ms": 150
+  },
+  "transports": ["websocket", "http", "serial"],
+  "inputs": ["button", "fault"]
+}
