@@ -6,7 +6,7 @@
 
 Two little IPS eyes, one pocket-size OLED mouth, and a classic ESP32 doing its best impression of being alive.
 
-![YouAndEye concept sheet](docs/assets/youandeye-concept-sheet.png)
+![YouAndEye Expression Bench showing the physical Heltec face preview and expression controls](docs/assets/screenshots/expression-bench-overview.png)
 
 ![Hardware tested](https://img.shields.io/badge/hardware-tested-2ea44f)
 ![Tests](https://img.shields.io/badge/tests-61%2F61-2ea44f)
@@ -27,6 +27,19 @@ gaze, blink timing, mouth motion, text, and small character beats.
 
 The face does not need a stream of animation frames from a computer. Once powered, it keeps breathing,
 looking around, and blinking locally. Disconnect the agent and it still has a pulse.
+
+## Meet the expressions
+
+The browser bench renders the same semantic poses used by the firmware. These captures use the physical
+Heltec profile at its real 160×160 eye resolution and 128×64 OLED mouth resolution.
+
+| Thinking | Happy |
+|:---:|:---:|
+| ![Thinking expression with offset gaze and an animated dotted mouth](docs/assets/screenshots/expression-thinking.png) | ![Happy expression with smiling closed eyes and mouth](docs/assets/screenshots/expression-happy.png) |
+| **Surprised** | **Suspicious** |
+| ![Surprised expression with wide eyes and round mouth](docs/assets/screenshots/expression-surprised.png) | ![Suspicious expression with asymmetric narrowed eyes](docs/assets/screenshots/expression-suspicious.png) |
+| **Love** | **Error** |
+| ![Love expression with pink heart-shaped pupils](docs/assets/screenshots/expression-love.png) | ![Error expression with red angry eyes](docs/assets/screenshots/expression-error.png) |
 
 ## What is inside?
 
@@ -149,6 +162,8 @@ local MCP/HTTP control plane. Current build sizes, tests, and limitations are re
 Try a cardboard face. Sculpt one from foam clay. Put the eyes in a robot, a puppet, or a tiny haunted radio.
 The protocol deliberately separates personality from hardware, so a completely different shell can keep the
 same emotional vocabulary.
+
+![YouAndEye enclosure and expression concept sheet](docs/assets/youandeye-concept-sheet.png)
 
 Please document the exact hardware you test, and share photos of anything especially adorable or unsettling.
 
