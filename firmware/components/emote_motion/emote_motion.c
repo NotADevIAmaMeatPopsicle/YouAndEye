@@ -73,6 +73,41 @@ static uint32_t random_range_ms(emote_motion_t *motion, uint32_t low, uint32_t h
     return low + (uint32_t)(random_unit(motion) * (float)(high - low));
 }
 
+static float personality_energy(const emote_motion_t *motion)
+{
+    return clampf(motion->personality.energy, 0.25f, 0.85f);
+}
+
+static float blink_interval_scale(const emote_motion_t *motion)
+{
+    float style = 1.0f;
+    if (motion->personality.blink_style == EMOTE_BLINK_GENTLE) style = 1.22f;
+    else if (motion->personality.blink_style == EMOTE_BLINK_LIVELY) style = 0.76f;
+    const float energy_scale = 1.0f - ((personality_energy(motion) - 0.5f) * 0.50f);
+    return style * energy_scale;
+}
+
+static float blink_duration_scale(const emote_motion_t *motion)
+{
+    if (motion->personality.blink_style == EMOTE_BLINK_GENTLE) return 1.10f;
+    if (motion->personality.blink_style == EMOTE_BLINK_LIVELY) return 0.90f;
+    return 1.0f;
+}
+
+static float gaze_amplitude_scale(const emote_motion_t *motion)
+{
+    float gaze = 1.0f;
+    float idle = 1.0f;
+    if (motion->personality.gaze_style == EMOTE_GAZE_SOFT) gaze = 0.72f;
+    else if (motion->personality.gaze_style == EMOTE_GAZE_CURIOUS) gaze = 1.22f;
+    else if (motion->personality.gaze_style == EMOTE_GAZE_DIRECT) gaze = 0.52f;
+    if (motion->personality.idle_style == EMOTE_IDLE_CURIOUS) idle = 1.16f;
+    else if (motion->personality.idle_style == EMOTE_IDLE_PLAYFUL) idle = 1.28f;
+    else if (motion->personality.idle_style == EMOTE_IDLE_FOCUSED) idle = 0.62f;
+    const float energy_scale = 1.0f + ((personality_energy(motion) - 0.5f) * 0.60f);
+    return clampf(gaze * idle * energy_scale, 0.35f, 1.55f);
+}
+
 static void spring(float *value, float *velocity, float target, float omega, float dt)
 {
     if (!isfinite(*value) || !isfinite(*velocity) || !isfinite(target) || !isfinite(dt)) {
@@ -151,6 +186,9 @@ static void schedule_blink(emote_motion_t *motion, uint32_t now_ms)
                             attention_decay(motion, now_ms));
     low = (uint32_t)((float)low * slow);
     high = (uint32_t)((float)high * slow);
+    const float personality_scale = blink_interval_scale(motion);
+    low = (uint32_t)((float)low * personality_scale);
+    high = (uint32_t)((float)high * personality_scale);
     motion->next_blink_ms = now_ms + random_range_ms(motion, low, high);
 }
 
@@ -176,8 +214,9 @@ static void schedule_saccade(emote_motion_t *motion, uint32_t now_ms)
     }
     const float slow = mixf(1.0f, ATTENTION_DECAY_SACCADE_SLOW,
                             attention_decay(motion, now_ms));
-    low = (uint32_t)((float)low * slow);
-    high = (uint32_t)((float)high * slow);
+    const float activity = gaze_amplitude_scale(motion);
+    low = (uint32_t)((float)low * slow / activity);
+    high = (uint32_t)((float)high * slow / activity);
     motion->next_saccade_ms = now_ms + random_range_ms(motion, low, high);
 }
 
@@ -192,9 +231,48 @@ void emote_motion_init(emote_motion_t *motion, uint32_t seed, uint32_t now_ms)
     motion->target = motion->current;
     motion->transition_started_ms = now_ms;
     motion->blink_right_scale = 1.0f;
+    motion->personality.blink_style = EMOTE_BLINK_NATURAL;
+    motion->personality.gaze_style = EMOTE_GAZE_ATTENTIVE;
+    motion->personality.idle_style = EMOTE_IDLE_CALM;
+    motion->personality.energy = 0.5f;
+    motion->modifiers.warmth = 0.5f;
+    motion->modifiers.confidence = 0.5f;
+    motion->modifiers.urgency = 0.3f;
     for (int i = 0; i < EMOTE_CHANNEL_COUNT; ++i) motion->telemetry.transition_ms[i] = PENDING_MS;
     schedule_blink(motion, now_ms);
     schedule_saccade(motion, now_ms);
+}
+
+void emote_motion_set_personality(
+    emote_motion_t *motion,
+    const emote_personality_t *personality,
+    uint32_t now_ms)
+{
+    if (!motion || !personality) return;
+    motion->personality = *personality;
+    if (motion->personality.blink_style < EMOTE_BLINK_GENTLE ||
+        motion->personality.blink_style > EMOTE_BLINK_LIVELY) {
+        motion->personality.blink_style = EMOTE_BLINK_NATURAL;
+    }
+    if (motion->personality.gaze_style < EMOTE_GAZE_SOFT ||
+        motion->personality.gaze_style > EMOTE_GAZE_DIRECT) {
+        motion->personality.gaze_style = EMOTE_GAZE_ATTENTIVE;
+    }
+    if (motion->personality.idle_style < EMOTE_IDLE_CALM ||
+        motion->personality.idle_style > EMOTE_IDLE_FOCUSED) {
+        motion->personality.idle_style = EMOTE_IDLE_CALM;
+    }
+    motion->personality.energy = personality_energy(motion);
+    schedule_blink(motion, now_ms);
+    schedule_saccade(motion, now_ms);
+}
+
+void emote_motion_set_modifiers(emote_motion_t *motion, const emote_modifiers_t *modifiers)
+{
+    if (!motion || !modifiers) return;
+    motion->modifiers.warmth = clampf(modifiers->warmth, 0.0f, 1.0f);
+    motion->modifiers.confidence = clampf(modifiers->confidence, 0.0f, 1.0f);
+    motion->modifiers.urgency = clampf(modifiers->urgency, 0.0f, 1.0f);
 }
 
 void emote_motion_apply(emote_motion_t *motion, const emote_target_t *target, uint32_t now_ms)
@@ -217,6 +295,8 @@ void emote_motion_apply(emote_motion_t *motion, const emote_target_t *target, ui
     } else {
         motion->reaction_ms = random_range_ms(motion, 140u, 210u);
     }
+    motion->reaction_ms = (uint32_t)((float)motion->reaction_ms *
+        mixf(1.12f, 0.72f, motion->modifiers.urgency));
     motion->expires_at_ms = now_ms + target->ttl_ms;
     motion->decay_ends_ms = motion->expires_at_ms + target->decay_duration_ms;
     motion->saccade_x = motion->saccade_y = 0.0f;
@@ -250,7 +330,7 @@ void emote_motion_request_blink(emote_motion_t *motion, uint32_t now_ms)
     if (!motion || motion->blink_active) return;
     motion->blink_active = true;
     motion->blink_started_ms = now_ms;
-    motion->blink_duration_ms = BLINK_DURATION_MS;
+    motion->blink_duration_ms = (uint32_t)((float)BLINK_DURATION_MS * blink_duration_scale(motion));
     motion->blink_right_scale = BLINK_RIGHT_SCALE_MIN +
         (random_unit(motion) * (BLINK_RIGHT_SCALE_MAX - BLINK_RIGHT_SCALE_MIN));
     motion->double_blink_pending = false;
@@ -307,7 +387,7 @@ void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds
         if (!motion->blink_active && now_ms >= motion->next_blink_ms) {
             motion->blink_active = true;
             motion->blink_started_ms = now_ms;
-            motion->blink_duration_ms = BLINK_DURATION_MS;
+            motion->blink_duration_ms = (uint32_t)((float)BLINK_DURATION_MS * blink_duration_scale(motion));
             motion->blink_right_scale = BLINK_RIGHT_SCALE_MIN +
                 (random_unit(motion) * (BLINK_RIGHT_SCALE_MAX - BLINK_RIGHT_SCALE_MIN));
             float double_chance = motion->semantic.affect == EMOTE_ERROR ? 0.34f : 0.18f;
@@ -318,7 +398,8 @@ void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds
         if (now_ms >= motion->next_saccade_ms) {
             const float decay = attention_decay(motion, now_ms);
             const float wander_scale = mixf(1.0f, ATTENTION_DECAY_WANDER_SCALE, decay);
-            const bool big = random_unit(motion) < 0.28f;
+            const float profile_gaze_scale = gaze_amplitude_scale(motion);
+            const bool big = random_unit(motion) < clampf(0.28f * profile_gaze_scale, 0.12f, 0.44f);
             const bool glance_back = motion->semantic.affect == EMOTE_THINKING && random_unit(motion) < 0.34f;
             const float random_x = (random_unit(motion) * 2.0f) - 1.0f;
             const float random_y = (random_unit(motion) * 2.0f) - 1.0f;
@@ -334,8 +415,8 @@ void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds
                 motion->saccade_target_y = 0.06f + (random_y * 0.035f);
             } else {
                 motion->saccade_target_x = glance_back ? 0.36f :
-                    random_x * (big ? 0.26f : 0.07f) * wander_scale;
-                motion->saccade_target_y = random_y * (big ? 0.18f : 0.05f) * wander_scale;
+                    random_x * (big ? 0.26f : 0.07f) * wander_scale * profile_gaze_scale;
+                motion->saccade_target_y = random_y * (big ? 0.18f : 0.05f) * wander_scale * profile_gaze_scale;
             }
             schedule_saccade(motion, now_ms);
         }
@@ -356,7 +437,8 @@ void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds
             schedule_blink(motion, now_ms);
         }
     }
-    motion->breathing_phase += dt;
+    motion->breathing_phase += dt *
+        (1.0f + ((personality_energy(motion) - 0.5f) * 0.45f));
     motion->telemetry.breathing = (sinf(motion->breathing_phase * 1.15f) + sinf(motion->breathing_phase * 0.41f)) * 0.5f;
     motion->telemetry.attention_decay = attention_decay(motion, now_ms);
 
@@ -420,17 +502,19 @@ static float blink_value(const emote_motion_t *motion, bool left_eye, uint32_t n
     const uint32_t lag = left_eye ? 0u : BLINK_RIGHT_LAG_MS;
     if (now_ms < motion->blink_started_ms + lag) return 0.0f;
     const uint32_t elapsed = now_ms - motion->blink_started_ms - lag;
+    const float time_scale = (float)motion->blink_duration_ms / (float)BLINK_DURATION_MS;
+    const uint32_t shaped_elapsed = (uint32_t)((float)elapsed / fmaxf(time_scale, 0.01f));
     float value = 0.0f;
-    if (elapsed < BLINK_ANTICIPATION_MS) {
-        const float phase = (float)elapsed / (float)BLINK_ANTICIPATION_MS;
+    if (shaped_elapsed < BLINK_ANTICIPATION_MS) {
+        const float phase = (float)shaped_elapsed / (float)BLINK_ANTICIPATION_MS;
         value = -BLINK_ANTICIPATION_OPEN * sinf(phase * 3.14159265358979323846f);
     } else {
-      const uint32_t action_elapsed = elapsed - BLINK_ANTICIPATION_MS;
+      const uint32_t action_elapsed = shaped_elapsed - BLINK_ANTICIPATION_MS;
       if (action_elapsed < BLINK_CLOSE_MS) {
         value = smoothstep((float)action_elapsed / (float)BLINK_CLOSE_MS);
       } else if (action_elapsed < BLINK_CLOSE_MS + BLINK_HOLD_MS) {
         value = 1.0f;
-      } else if (elapsed < motion->blink_duration_ms) {
+      } else if (shaped_elapsed < BLINK_DURATION_MS) {
         const uint32_t opening_ms = action_elapsed - BLINK_CLOSE_MS - BLINK_HOLD_MS;
         value = 1.0f - smoothstep((float)opening_ms / (float)BLINK_OPEN_MS);
       }
@@ -456,6 +540,8 @@ emote_pose_t emote_motion_render_pose(const emote_motion_t *motion, bool left_ey
     pose.gaze_y += eye_drift * EYE_DRIFT_Y_SCALE;
     pose.open = clampf(pose.open - (blink * 1.02f), 0.02f, 1.30f);
     pose.pupil = clampf(pose.pupil + (motion->telemetry.breathing * 0.02f), 0.12f, 0.86f);
+    pose.pupil = clampf(pose.pupil + ((motion->modifiers.warmth - 0.5f) * 0.025f), 0.12f, 0.86f);
+    pose.open = clampf(pose.open + ((motion->modifiers.confidence - 0.5f) * 0.018f), 0.02f, 1.30f);
 
     const float decay = attention_decay(motion, now_ms);
     pose.open = clampf(pose.open - (ATTENTION_DECAY_OPEN_DROP * decay), 0.02f, 1.30f);

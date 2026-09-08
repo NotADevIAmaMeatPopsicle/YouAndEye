@@ -5,7 +5,7 @@
     "id": "youandeye-heltec-01",
     "name": "YouAndEye Heltec face",
     "renderer": "round-friendly-fast",
-    "firmware": "0.1.0"
+    "firmware": "0.2.0"
   },
   "channels": [
     {

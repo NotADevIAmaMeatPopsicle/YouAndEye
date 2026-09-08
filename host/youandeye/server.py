@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import time
 from http import HTTPStatus
@@ -14,6 +15,7 @@ from .bridge import SurfaceBridge
 from .contracts import ContractError
 from .device import DeviceError, HeltecDevice
 from .face_service import ExpressionService, heltec_bridge
+from .profile_store import ProfileStore, default_profile_db_path
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -108,6 +110,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     HTTPStatus.SERVICE_UNAVAILABLE,
                     {"ok": False, "error": str(exc), "error_code": exc.code},
                 )
+        elif path == "/v1/profile":
+            if self.server.face_service is None:
+                self._send_json(
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    {"ok": False, "error": "profile service is not enabled"},
+                )
+                return
+            self._send_json(HTTPStatus.OK, self.server.face_service.profile_status())
         else:
             self._send_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
 
@@ -219,8 +229,13 @@ def main() -> int:
     args = parse_args()
     face_service = None
     if args.heltec_port is not None:
+        source_id = os.environ.get("YOUANDEYE_SOURCE_ID", "agent")
         face_service = ExpressionService(
-            HeltecDevice(port=args.heltec_port), bridge=heltec_bridge()
+            HeltecDevice(port=args.heltec_port),
+            bridge=heltec_bridge(),
+            source_id=source_id,
+            agent_id=os.environ.get("YOUANDEYE_AGENT_ID", source_id),
+            profile_store=ProfileStore(default_profile_db_path()),
         )
     server = make_server(args.host, args.port, face_service=face_service)
     print(f"YouandEye bridge listening on http://{args.host}:{server.server_port}")

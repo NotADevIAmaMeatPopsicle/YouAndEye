@@ -280,6 +280,80 @@ static int test_attention_decays_and_recovers(void)
     return 0;
 }
 
+static int test_personality_is_bounded_and_preserves_core_geometry(void)
+{
+    emote_motion_t baseline;
+    emote_motion_t styled;
+    emote_target_t target;
+    const uint32_t started_ms = 1000u;
+    emote_motion_init(&baseline, 0x51a7u, started_ms);
+    emote_motion_init(&styled, 0x51a7u, started_ms);
+    emote_target_neutral(&target);
+    target.affect = EMOTE_SUSPICIOUS;
+    target.intensity = emote_pose_for_affect(EMOTE_SUSPICIOUS).intensity;
+    target.autonomy = false;
+
+    emote_personality_t personality = {
+        EMOTE_BLINK_LIVELY,
+        EMOTE_GAZE_CURIOUS,
+        EMOTE_IDLE_PLAYFUL,
+        0.65f,
+    };
+    emote_motion_set_personality(&styled, &personality, started_ms);
+    emote_motion_apply(&baseline, &target, started_ms);
+    emote_motion_apply(&styled, &target, started_ms);
+    if (require(pose_delta(&baseline.target, &styled.target) < 0.0001f,
+                "personality controls changed authored core-expression geometry")) return 1;
+
+    emote_motion_request_blink(&baseline, started_ms);
+    emote_motion_request_blink(&styled, started_ms);
+    if (require(styled.blink_duration_ms < baseline.blink_duration_ms,
+                "lively blink style did not shorten the bounded blink")) return 1;
+    emote_motion_step(&styled, started_ms + 90u, 0.05f);
+    if (require(styled.telemetry.blink_left != 0.0f &&
+                    styled.telemetry.blink_right != 0.0f,
+                "styled blink lost synchronized two-eye motion")) return 1;
+
+    personality.blink_style = (emote_blink_style_t)99;
+    personality.gaze_style = (emote_gaze_style_t)99;
+    personality.idle_style = (emote_idle_style_t)99;
+    personality.energy = 4.0f;
+    emote_motion_set_personality(&styled, &personality, started_ms);
+    if (require(styled.personality.blink_style == EMOTE_BLINK_NATURAL &&
+                    styled.personality.gaze_style == EMOTE_GAZE_ATTENTIVE &&
+                    styled.personality.idle_style == EMOTE_IDLE_CALM &&
+                    fabsf(styled.personality.energy - 0.85f) < 0.0001f,
+                "invalid personality values were not normalized and bounded")) return 1;
+    return 0;
+}
+
+static int test_semantic_modifiers_are_bounded(void)
+{
+    emote_motion_t baseline;
+    emote_motion_t urgent;
+    emote_target_t target;
+    const uint32_t started_ms = 1000u;
+    emote_motion_init(&baseline, 0x51a7u, started_ms);
+    emote_motion_init(&urgent, 0x51a7u, started_ms);
+    emote_target_neutral(&target);
+    target.affect = EMOTE_THINKING;
+    target.intensity = emote_pose_for_affect(EMOTE_THINKING).intensity;
+
+    const emote_modifiers_t default_modifiers = {0.5f, 0.5f, 0.3f};
+    const emote_modifiers_t unsafe_modifiers = {-1.0f, 2.0f, 2.0f};
+    emote_motion_set_modifiers(&baseline, &default_modifiers);
+    emote_motion_set_modifiers(&urgent, &unsafe_modifiers);
+    emote_motion_apply(&baseline, &target, started_ms);
+    emote_motion_apply(&urgent, &target, started_ms);
+    if (require(urgent.modifiers.warmth == 0.0f &&
+                    urgent.modifiers.confidence == 1.0f &&
+                    urgent.modifiers.urgency == 1.0f,
+                "semantic modifiers were not clamped to the safe range") ||
+        require(urgent.reaction_ms < baseline.reaction_ms,
+                "urgency did not shorten the local reaction timing")) return 1;
+    return 0;
+}
+
 int main(void)
 {
     if (test_blink_timing()) return 1;
@@ -289,6 +363,8 @@ int main(void)
     if (test_independent_eye_drift()) return 1;
     if (test_sixty_second_idle_life()) return 1;
     if (test_attention_decays_and_recovers()) return 1;
+    if (test_personality_is_bounded_and_preserves_core_geometry()) return 1;
+    if (test_semantic_modifiers_are_bounded()) return 1;
 
     emote_motion_t motion;
     uint32_t now_ms = 1000u;

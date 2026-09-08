@@ -233,6 +233,28 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
       </div>
     </section>
 
+    <section class="mod" id="identityModule">
+      <h2>Agent identity preview</h2>
+      <div class="mod-body">
+        <div class="ctl"><label for="pIris">iris</label>
+          <select id="pIris"><option>azure</option><option>teal</option><option>violet</option><option>amber</option><option>rose</option><option>emerald</option></select></div>
+        <div class="ctl"><label for="pAccent">accent</label>
+          <select id="pAccent"><option>blue</option><option>cyan</option><option>violet</option><option>gold</option><option>coral</option><option>mint</option></select></div>
+        <div class="ctl"><label for="pEnergy">energy</label><output id="pEnergyOut">0.50</output>
+          <input type="range" id="pEnergy" min="0.25" max="0.85" step="0.05" value="0.50"></div>
+        <div class="ctl"><label for="pBlink">blink style</label>
+          <select id="pBlink"><option>natural</option><option>gentle</option><option>lively</option></select></div>
+        <div class="ctl"><label for="pGaze">gaze style</label>
+          <select id="pGaze"><option>attentive</option><option>soft</option><option>curious</option><option>direct</option></select></div>
+        <div class="ctl"><label for="pIdle">idle temperament</label>
+          <select id="pIdle"><option>calm</option><option>curious</option><option>playful</option><option>focused</option></select></div>
+        <div class="ctl"><label for="pMouth">mouth style</label>
+          <select id="pMouth"><option>expressive</option><option>minimal</option><option>text_friendly</option></select></div>
+        <button type="button" class="blind-reset" id="profilePreview">Preview neutral → listening → thinking → success</button>
+        <div class="audit" id="profileStatus" aria-live="polite">Safe default · no profile applied</div>
+      </div>
+    </section>
+
     <section class="mod" id="directModule">
       <h2>Direct override</h2>
       <div class="mod-body">
@@ -486,6 +508,15 @@ var stateStartedAt=performance.now();
 var idleAudit={seconds:0,staticFrames:0,last:null};
 var bridge={url:null,status:'standalone',lastKey:null,timer:null};
 var beat={active:null,timers:[]};
+var PROFILE_PALETTES={
+  azure:[70,160,238],teal:[54,190,184],violet:[145,108,224],
+  amber:[232,165,62],rose:[220,105,148],emerald:[76,188,126]
+};
+var PROFILE_ACCENTS={cyan:'#57c9f2',violet:'#9a7bea',gold:'#e8ad4f',coral:'#ed7f72',mint:'#67d6a0',blue:'#4da3ff'};
+var profileStyle={agentId:null,revision:0,irisPalette:'azure',accent:'blue',defaultEnergy:0.5,
+  blinkStyle:'natural',gazeStyle:'attentive',idleTemperament:'calm',mouthStyle:'expressive'};
+var semanticModifiers={warmth:0.5,confidence:0.65,urgency:0.35,gazeAversion:'none'};
+var profilePreviewTimers=[];
 
 /* ---------------- math helpers ---------------- */
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
@@ -531,6 +562,7 @@ function beginTransition(){
   var reaction=current==='error'?70:(current==='listening'?105+Math.random()*45:
     (current==='thinking'?230+Math.random()*70:
     ((current==='uncertain'||current==='concerned'||current==='embarrassed')?185+Math.random()*70:140+Math.random()*70)));
+  reaction*=mix(1.12,0.72,semanticModifiers.urgency);
   transition={start:performance.now(),reaction:reaction,
     from:Object.assign({},S),changed:{},settled:{}};
   Object.keys(CHANNELS).forEach(function(name){
@@ -593,6 +625,59 @@ var HUES=[ null,
   {irisOut:[112,26,26], irisIn:[228,86,74],  limbal:[54,10,10]},  /* error   */
   {irisOut:[20,88,60],  irisIn:[86,214,150], limbal:[8,40,28]}    /* success */
 ];
+function boundedProfile(input){
+  var appearance=input&&input.appearance?input.appearance:(input||{});
+  var temperament=input&&input.temperament?input.temperament:(input||{});
+  var iris=appearance.iris_palette||appearance.irisPalette||'azure';
+  var accent=appearance.accent||'blue';
+  var mouth=appearance.mouth_style||appearance.mouthStyle||'expressive';
+  var blink=temperament.blink_style||temperament.blinkStyle||'natural';
+  var gaze=temperament.gaze_style||temperament.gazeStyle||'attentive';
+  var idle=temperament.idle_temperament||temperament.idleTemperament||'calm';
+  if(!PROFILE_PALETTES[iris]) iris='azure';
+  if(!PROFILE_ACCENTS[accent]) accent='blue';
+  if(['minimal','expressive','text_friendly'].indexOf(mouth)<0) mouth='expressive';
+  if(['gentle','natural','lively'].indexOf(blink)<0) blink='natural';
+  if(['soft','attentive','curious','direct'].indexOf(gaze)<0) gaze='attentive';
+  if(['calm','curious','playful','focused'].indexOf(idle)<0) idle='calm';
+  return {agentId:String(input&&input.agent_id||input&&input.agentId||''),revision:Number(input&&input.revision||0),
+    irisPalette:iris,accent:accent,defaultEnergy:clamp(Number(temperament.default_energy===undefined?temperament.defaultEnergy:temperament.default_energy)||0.5,0.25,0.85),
+    blinkStyle:blink,gazeStyle:gaze,idleTemperament:idle,mouthStyle:mouth};
+}
+function applyProfile(input){
+  profileStyle=boundedProfile(input);
+  document.documentElement.style.setProperty('--accent',PROFILE_ACCENTS[profileStyle.accent]);
+  document.getElementById('pIris').value=profileStyle.irisPalette;
+  document.getElementById('pAccent').value=profileStyle.accent;
+  document.getElementById('pEnergy').value=profileStyle.defaultEnergy;
+  document.getElementById('pEnergyOut').textContent=profileStyle.defaultEnergy.toFixed(2);
+  document.getElementById('pBlink').value=profileStyle.blinkStyle;
+  document.getElementById('pGaze').value=profileStyle.gazeStyle;
+  document.getElementById('pIdle').value=profileStyle.idleTemperament;
+  document.getElementById('pMouth').value=profileStyle.mouthStyle;
+  document.getElementById('profileStatus').textContent=(profileStyle.agentId?profileStyle.agentId+' · ':'')+
+    profileStyle.irisPalette+' iris · '+profileStyle.idleTemperament+' idle';
+  nextBlink=Math.min(nextBlink,0.8);
+  return Object.assign({},profileStyle);
+}
+function profileEyePalette(){
+  var rgb=PROFILE_PALETTES[profileStyle.irisPalette]||PROFILE_PALETTES.azure;
+  return {
+    irisOut:rgb.map(function(v){return Math.round(v*0.42);}),
+    irisIn:rgb.map(function(v){return Math.round(v+(255-v)*0.18);}),
+    limbal:rgb.map(function(v){return Math.round(v*0.16);})
+  };
+}
+function applySemanticModifiers(input){
+  input=input||{};
+  semanticModifiers={
+    warmth:clamp(Number(input.warmth===undefined?0.5:input.warmth),0,1),
+    confidence:clamp(Number(input.confidence===undefined?0.65:input.confidence),0,1),
+    urgency:clamp(Number(input.urgency===undefined?0.35:input.urgency),0,1),
+    gazeAversion:['none','brief','moderate'].indexOf(input.gaze_aversion)>=0?input.gaze_aversion:'none'
+  };
+  return Object.assign({},semanticModifiers);
+}
 
 /* ------------------------------------------------------------------ *
  * renderEye — a direct analogue of the C function. Per pixel:
@@ -603,6 +688,8 @@ var stat={shaded:0,total:0};
 function expressivePose(isLeft){
   var pose=Object.assign({},S), elapsed=performance.now()-transition.start;
   if(UI.view!=='live') return pose;
+  pose.pupil=clamp(pose.pupil+(semanticModifiers.warmth-0.5)*0.025,0.12,0.86);
+  pose.open=clamp(pose.open+(semanticModifiers.confidence-0.5)*0.018,0.02,1.30);
   var decay=attentionDecay(performance.now());
   pose.open=clamp(pose.open-ATTENTION_DECAY_PROFILE.openDrop*decay,0.02,1.30);
   pose.lidL=clamp(pose.lidL+ATTENTION_DECAY_PROFILE.lowerLidRise*decay,0,1);
@@ -688,9 +775,10 @@ function renderEye(buf, isLeft){
   var bs = Math.sin(eyeBrowRot*mirror), bc = Math.cos(eyeBrowRot*mirror);
 
   var hue = HUES[Math.round(P.hue)]||null;
-  var irisOut = hue?hue.irisOut:PAL.irisOut;
-  var irisIn  = hue?hue.irisIn :PAL.irisIn;
-  var limbal  = hue?hue.limbal :PAL.limbal;
+  var identityPalette=profileEyePalette();
+  var irisOut = hue?hue.irisOut:identityPalette.irisOut;
+  var irisIn  = hue?hue.irisIn :identityPalette.irisIn;
+  var limbal  = hue?hue.limbal :identityPalette.limbal;
 
   var shaded=0, p=0;
 
@@ -965,6 +1053,7 @@ function mouthForState(name){
     var talking=[MOUTHS.speakClosed,MOUTHS.speakSmall,MOUTHS.speakWide,MOUTHS.speakSmall];
     return talking[Math.floor(tRun*7)%talking.length];
   }
+  if(profileStyle.mouthStyle==='text_friendly' && name!=='speaking') return MOUTHS.neutral;
   if(name==='happy'||name==='encouraging'||name==='reassuring'||name==='delighted'||name==='excited'||name==='love'||name==='success') return MOUTHS.smile;
   if(name==='sad'||name==='concerned'||name==='error') return MOUTHS.frown;
   if(name==='surprised') return MOUTHS.surprised;
@@ -1005,8 +1094,8 @@ function drawMatrix(){
   if(UI.surface==='heltec'){
     var pitch=3, dot=2, ox=16, oy=20;
     mCtx.save();
-    mCtx.shadowColor='rgba(120,214,255,.72)'; mCtx.shadowBlur=4;
-    mCtx.fillStyle='#9ce5ff';
+    mCtx.shadowColor=PROFILE_ACCENTS[profileStyle.accent]; mCtx.shadowBlur=profileStyle.mouthStyle==='minimal'?2:4;
+    mCtx.fillStyle=PROFILE_ACCENTS[profileStyle.accent];
     mCtx.fillRect(6,10,116,1); mCtx.fillRect(6,53,116,1);
     mCtx.fillRect(6,11,1,42); mCtx.fillRect(121,11,1,42);
     mCtx.shadowBlur=0;
@@ -1014,7 +1103,7 @@ function drawMatrix(){
       var hcol=activeBits[(hc+off)%activeBits.length];
       for(var hr=0;hr<MROWS;hr++){
         var hon=(hcol>>hr)&1, hx=ox+hc*pitch, hy=oy+hr*pitch;
-        mCtx.fillStyle=hon?'#e6f8ff':'#09151d';
+        mCtx.fillStyle=hon?PROFILE_ACCENTS[profileStyle.accent]:'#09151d';
         mCtx.fillRect(hx,hy,dot,dot);
       }
     }
@@ -1055,8 +1144,10 @@ function autonomy(dt){
       (current==='working'||current==='thinking'?3.6:2.8))));
     var span=current==='error'?1.6:((current==='uncertain'||current==='embarrassed')?1.8:
       (current==='listening'?2.0:((current==='excited'||current==='delighted')?2.3:3.4)));
+    var blinkStyleScale=profileStyle.blinkStyle==='gentle'?1.22:(profileStyle.blinkStyle==='lively'?0.76:1);
+    blinkStyleScale*=(1-(profileStyle.defaultEnergy-0.5)*0.50)*mix(1,0.82,semanticModifiers.urgency);
     var blinkSlow=mix(1,ATTENTION_DECAY_PROFILE.blinkSlow,attentionDecay(performance.now()));
-    nextBlink=(base+Math.random()*span)*blinkSlow;
+    nextBlink=(base+Math.random()*span)*blinkSlow*blinkStyleScale;
     dblPending=Math.random()<((current==='error')?0.34:((current==='uncertain'||current==='embarrassed')?0.30:0.18));
   }
   if(blinkPhase===1){
@@ -1070,7 +1161,10 @@ function autonomy(dt){
   if(nextSac<=0){
     var decay=attentionDecay(performance.now());
     var wanderScale=mix(1,ATTENTION_DECAY_PROFILE.wanderScale,decay);
-    var big=Math.random()<0.28;
+    var gazeScale=profileStyle.gazeStyle==='soft'?0.72:(profileStyle.gazeStyle==='curious'?1.22:(profileStyle.gazeStyle==='direct'?0.52:1));
+    var idleScale=profileStyle.idleTemperament==='playful'?1.28:(profileStyle.idleTemperament==='curious'?1.16:(profileStyle.idleTemperament==='focused'?0.62:1));
+    idleScale*=(1+(profileStyle.defaultEnergy-0.5)*0.60)*mix(0.9,1.16,semanticModifiers.urgency);
+    var big=Math.random()<(0.28*idleScale);
     var glanceBack=current==='thinking' && Math.random()<0.34;
     var randomX=Math.random()*2-1, randomY=Math.random()*2-1;
     if(current==='listening'||current==='reassuring'){
@@ -1080,11 +1174,11 @@ function autonomy(dt){
     }else if(current==='embarrassed'){
       sacTX=0.08+randomX*0.05; sacTY=0.06+randomY*0.035; nextSac=0.9+Math.random()*1.3;
     }else{
-      sacTX=glanceBack?0.36:randomX*(big?0.26:0.07)*wanderScale;
-      sacTY=randomY*(big?0.18:0.05)*wanderScale;
+      sacTX=glanceBack?0.36:randomX*(big?0.26:0.07)*wanderScale*gazeScale;
+      sacTY=randomY*(big?0.18:0.05)*wanderScale*gazeScale;
       nextSac=current==='thinking'?(1.2+Math.random()*1.6):
         ((current==='playful'||current==='excited')?(0.25+Math.random()*0.60):(big?(1.1+Math.random()*2.2):(0.35+Math.random()*0.9)));
-      if(current==='neutral') nextSac*=mix(1,ATTENTION_DECAY_PROFILE.saccadeSlow,decay);
+      if(current==='neutral') nextSac*=mix(1,ATTENTION_DECAY_PROFILE.saccadeSlow,decay)/idleScale;
     }
   }
   var rx=spring(sacX,sacVX,sacTX,26,dt); sacX=rx[0]; sacVX=rx[1];
@@ -1253,12 +1347,42 @@ function runBeat(name,stateOverride){
   },beatHoldMs(spec)));
   return true;
 }
+function cancelProfilePreview(){
+  profilePreviewTimers.forEach(clearTimeout); profilePreviewTimers=[];
+}
+function previewProfile(input){
+  cancelProfilePreview(); applyProfile(input);
+  var states=['neutral','listening','thinking','success'];
+  var index=0, status=document.getElementById('profileStatus');
+  return new Promise(function(resolve){
+    function advance(){
+      if(index>=states.length){
+        setState('neutral');
+        status.textContent=(profileStyle.agentId?profileStyle.agentId+' · ':'')+'preview complete · approve or revise';
+        profilePreviewTimers=[]; resolve({status:'completed',states:states.slice(),profile:Object.assign({},profileStyle)}); return;
+      }
+      var state=states[index++]; setState(state);
+      status.textContent='Preview '+index+'/'+states.length+' · '+state;
+      profilePreviewTimers.push(setTimeout(advance,1100));
+    }
+    advance();
+  });
+}
 var beatChips=document.getElementById('beatChips');
 BEAT_ORDER.forEach(function(name){
   var button=document.createElement('button'); button.className='chip'; button.type='button';
   button.textContent=name; button.dataset.beat=name; button.setAttribute('aria-pressed','false');
   button.addEventListener('click',function(){runBeat(name);}); beatChips.appendChild(button);
 });
+function profileFromControls(){
+  return {agent_id:'simulator-preview',revision:1,
+    appearance:{iris_palette:document.getElementById('pIris').value,accent:document.getElementById('pAccent').value,
+      mouth_style:document.getElementById('pMouth').value},
+    temperament:{default_energy:parseFloat(document.getElementById('pEnergy').value),blink_style:document.getElementById('pBlink').value,
+      gaze_style:document.getElementById('pGaze').value,idle_temperament:document.getElementById('pIdle').value}};
+}
+document.getElementById('pEnergy').addEventListener('input',function(){document.getElementById('pEnergyOut').textContent=parseFloat(this.value).toFixed(2);});
+document.getElementById('profilePreview').addEventListener('click',function(){previewProfile(profileFromControls());});
 function bindSlider(id,out,key,fmt){
   var el=document.getElementById(id), o=document.getElementById(out);
   el.addEventListener('input',function(){
@@ -1427,6 +1551,9 @@ function setUtterance(utterance, muted){
 function applyResolvedState(payload){
   if(!payload || payload.protocol!=='emote/1' || !payload.frame) throw new Error('invalid emote/1 bridge state');
   var frame=payload.frame, affect=frame.affect||{}, state=affect.state;
+  var context=frame.extensions&&frame.extensions.youandeye;
+  if(context&&context.profile) applyProfile(context.profile);
+  applySemanticModifiers(context&&context.modifiers);
   var requestedIntensity=typeof affect.intensity==='number'?clamp(affect.intensity,0,1):STATES[state].intensity;
   var muted=frame.channel_policy && frame.channel_policy.utterance==='mute';
   var sequenceDriven=frame.sequence && PROTOCOL_BEATS[frame.sequence] && !muted &&
@@ -1458,6 +1585,10 @@ function applyResolvedState(payload){
       T.gx=clamp(frame.gaze.x,-1,1); T.gy=clamp(frame.gaze.y,-1,1);
     }else if(frame.gaze.target==='user'){
       T.gx=0; T.gy=0;
+    }else if(frame.gaze.target==='away'){
+      T.gx=profileStyle.gazeStyle==='soft'?-0.24:-0.38; T.gy=0.14;
+    }else if(frame.gaze.target==='wander'){
+      nextSac=0;
     }
   }
   if(!sequenceDriven) setUtterance(frame.utterance,muted);
@@ -1495,6 +1626,9 @@ window.ExpressionBench={
   setView:setView,
   applyFrame:function(frame){applyResolvedState({protocol:'emote/1',phase:'hold',weight:1,frame:frame});},
   applyResolvedState:applyResolvedState,
+  applyProfile:applyProfile,
+  applySemanticModifiers:applySemanticModifiers,
+  previewProfile:previewProfile,
   connectBridge:connectBridge,
   setBlinkPreview:function(value){blinkPreview=Number.isFinite(value)?clamp(value,0,1):null;},
   setAttentionAgeMs:function(value){stateStartedAt=performance.now()-Math.max(0,Number(value)||0);},
@@ -1509,7 +1643,7 @@ window.ExpressionBench={
       shadedPixels:stat.shaded,totalPixels:stat.total,utterance:msg,blinkPreview:blinkPreview,
       motionProfile:{blink:Object.assign({},BLINK_PROFILE),gazeArc:Object.assign({},GAZE_ARC_PROFILE),
         eyeDrift:Object.assign({},EYE_DRIFT_PROFILE),attentionDecay:Object.assign({},ATTENTION_DECAY_PROFILE)},
-      bridge:{status:bridge.status,url:bridge.url}};
+      bridge:{status:bridge.status,url:bridge.url},profile:Object.assign({},profileStyle),modifiers:Object.assign({},semanticModifiers)};
   }
 };
 
@@ -1518,6 +1652,7 @@ if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').ma
 }
 
 setSurfaceProfile('heltec');
+applyProfile(profileStyle);
 setState('neutral');
 var queryParams=new URLSearchParams(location.search);
 var stateParam=queryParams.get('state');

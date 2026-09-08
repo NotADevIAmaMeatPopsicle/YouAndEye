@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://youandeye.local/schema/youandeye-performance.schema.json",
+  "title": "YouAndEye semantic performance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "kind", "performance_id", "source", "beats", "return_policy", "interrupt_policy"],
+  "properties": {
+    "protocol": {"const": "youandeye.performance/1"},
+    "kind": {"const": "performance"},
+    "performance_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "session"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._:-]+$"},
+        "session": {"type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[A-Za-z0-9._:-]+$"}
+      }
+    },
+    "title": {"type": "string", "maxLength": 80},
+    "beats": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["affect", "pace"],
+        "properties": {
+          "affect": {
+            "enum": [
+              "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
+              "error", "listening", "speaking", "working", "success", "playful", "encouraging",
+              "curious", "uncertain", "concerned", "delighted", "embarrassed", "reassuring"
+            ]
+          },
+          "intensity": {"type": "number", "minimum": 0, "maximum": 1},
+          "caption": {"type": "string", "minLength": 1, "maxLength": 64},
+          "caption_mode": {"enum": ["auto", "static", "scroll", "icon", "speech"]},
+          "pace": {"enum": ["glance", "brief", "normal", "held", "lingering"]},
+          "sequence": {"enum": ["attention", "acknowledge", "celebrate", "reassure", "error"]},
+          "modifiers": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "warmth": {"type": "number", "minimum": 0, "maximum": 1},
+              "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+              "urgency": {"type": "number", "minimum": 0, "maximum": 1},
+              "gaze_aversion": {"enum": ["none", "brief", "moderate"]}
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {"required": ["sequence"]},
+            "then": {"not": {"required": ["caption"]}}
+          }
+        ]
+      }
+    },
+    "return_policy": {"enum": ["profile_neutral", "safe_neutral"]},
+    "interrupt_policy": {"enum": ["replace", "reject"]}
+  }
+}

@@ -47,14 +47,56 @@ def _safe_text(value: object) -> str:
     return text[:HELTEC_TEXT_MAX_CHARS]
 
 
+def _semantic_context_command(frame: Mapping[str, Any]) -> str | None:
+    """Translate bounded semantic context without exposing physical coordinates."""
+
+    behavior = frame.get("behavior", {})
+    gaze = frame.get("gaze", {})
+    extensions = frame.get("extensions", {})
+    youandeye = extensions.get("youandeye", {}) if isinstance(extensions, Mapping) else {}
+    modifiers = youandeye.get("modifiers", {}) if isinstance(youandeye, Mapping) else {}
+    if not isinstance(modifiers, Mapping):
+        modifiers = {}
+
+    mode = str(behavior.get("mode", "attentive"))
+    gaze_target = str(gaze.get("target", "user"))
+    source = frame.get("source", {})
+    is_compiled_baseline = (
+        isinstance(source, Mapping) and source.get("session") == "baseline"
+    )
+    if not modifiers and is_compiled_baseline:
+        return None
+    if not modifiers and mode == "attentive" and gaze_target == "user":
+        return None
+
+    # POSE preserves expression-authored gaze. AWAY and WANDER remain semantic;
+    # firmware owns their bounded physical coordinates and local motion.
+    gaze_token = {
+        "away": "AWAY",
+        "wander": "WANDER",
+        "user": "POSE",
+    }.get(gaze_target, "POSE")
+    warmth = float(modifiers.get("warmth", 0.5))
+    confidence = float(modifiers.get("confidence", 0.5))
+    urgency = float(modifiers.get("urgency", 0.3))
+    return (
+        f"CONTEXT {mode.upper()} {gaze_token} "
+        f"{warmth:.2f} {confidence:.2f} {urgency:.2f}"
+    )
+
+
 def commands_for_frame(frame: Mapping[str, Any]) -> list[str]:
     """Translate one canonical emote/1 frame into the Heltec rig's local commands."""
 
     checked = validate_message(frame, "frame")
     policy = checked.get("channel_policy", {})
     commands: list[str] = []
+    eyes_enabled = policy.get("eyes", "auto") != "mute"
+    context_command = _semantic_context_command(checked) if eyes_enabled else None
+    if context_command is not None:
+        commands.append(context_command)
 
-    if policy.get("eyes", "auto") != "mute":
+    if eyes_enabled:
         commands.append(
             f"EMOTE {checked['affect']['state'].upper()} {checked['affect']['intensity']:.2f}"
         )
@@ -73,7 +115,8 @@ def commands_for_frame(frame: Mapping[str, Any]) -> list[str]:
         and not utterance_muted
         and mode == "none"
     ):
-        return [f"BEAT {HELTEC_SEQUENCE_COMMANDS[sequence]}"]
+        context = [context_command] if context_command is not None else []
+        return context + [f"BEAT {HELTEC_SEQUENCE_COMMANDS[sequence]}"]
 
     if utterance_muted:
         commands.append("MOUTH BLANK")

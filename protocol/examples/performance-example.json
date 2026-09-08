@@ -1,0 +1,48 @@
+{
+  "protocol": "youandeye.performance/1",
+  "kind": "performance",
+  "performance_id": "scene-example-1",
+  "source": {
+    "id": "agent.example",
+    "session": "demo-session"
+  },
+  "title": "A small discovery",
+  "beats": [
+    {
+      "affect": "listening",
+      "pace": "brief",
+      "modifiers": {
+        "warmth": 0.7,
+        "confidence": 0.7,
+        "urgency": 0.2,
+        "gaze_aversion": "none"
+      }
+    },
+    {
+      "affect": "thinking",
+      "caption": "ONE MOMENT...",
+      "caption_mode": "auto",
+      "pace": "normal",
+      "modifiers": {
+        "warmth": 0.45,
+        "confidence": 0.45,
+        "urgency": 0.25,
+        "gaze_aversion": "brief"
+      }
+    },
+    {
+      "affect": "delighted",
+      "caption": "FOUND IT!",
+      "caption_mode": "auto",
+      "pace": "held",
+      "modifiers": {
+        "warmth": 0.9,
+        "confidence": 0.9,
+        "urgency": 0.35,
+        "gaze_aversion": "none"
+      }
+    }
+  ],
+  "return_policy": "profile_neutral",
+  "interrupt_policy": "replace"
+}

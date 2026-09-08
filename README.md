@@ -9,7 +9,7 @@ Two little IPS eyes, one pocket-size OLED mouth, and a classic ESP32 doing its b
 ![YouAndEye Expression Bench showing the physical Heltec face preview and expression controls](docs/assets/screenshots/expression-bench-overview.png)
 
 ![Hardware tested](https://img.shields.io/badge/hardware-tested-2ea44f)
-![Tests](https://img.shields.io/badge/tests-65%2F65-2ea44f)
+![Tests](https://img.shields.io/badge/tests-80%2F80-2ea44f)
 ![ESP32](https://img.shields.io/badge/ESP32-PlatformIO-00979d)
 ![MCP](https://img.shields.io/badge/interface-MCP-7c3aed)
 ![License](https://img.shields.io/badge/license-MIT-f2c744)
@@ -50,7 +50,7 @@ Heltec profile at its real 160×160 eye resolution and 128×64 OLED mouth resolu
 | `firmware/` | Twenty-one expressions, autonomous motion, mouth shapes, text, and synchronized beats |
 | Expression Bench | Exact-size browser playground for tuning before flashing hardware |
 | `emote/1` | Transport-independent semantic expression contract |
-| Local MCP server | Four safe tools that let Codex or another MCP client wear the face |
+| Local MCP server | Semantic expression, local identities, and self-timed performances for Codex or another MCP client |
 
 The accepted build sustains about 30 FPS on the classic ESP32 with synchronized blinking and zero deadline
 misses in its final 60-second hardware soak. Release firmware is USB-only: it starts no access point, stores
@@ -114,6 +114,7 @@ The preferred agent boundary is local STDIO MCP:
 ```text
 express(affect="thinking", message="PLEASE WAIT...", text_mode="scroll")
 express(affect="success", sequence="celebrate")
+perform(beats=[{"affect":"listening","pace":"brief"}, {"affect":"thinking","pace":"held"}, {"affect":"delighted","pace":"brief"}])
 neutral()
 ```
 
@@ -123,6 +124,13 @@ neutral()
 | `face_status` | Read connection state, active expression, FPS, timing, and display health |
 | `face_capabilities` | Discover the face without opening its serial port |
 | `neutral` | Clear pending intent and return to autonomous neutral |
+| `configure_profile` | Create, preview, approve, activate, revise, or reset this agent's local identity |
+| `perform` | Run a complete semantic scene with surface-owned timing and completion feedback |
+
+Each agent can choose a curated iris palette, accent, energy, blink/gaze style, idle temperament, mouth style,
+and short signature acknowledgement. A new identity is previewed across neutral, listening, thinking, and
+success and requires user approval before activation. Profiles live in the operating system's local user-data
+directory, outside this repository.
 
 See [the MCP guide](docs/MCP.md) for Codex setup, other MCP clients, the loopback-only HTTP bridge, and safety
 behavior. The project is local-first and fully usable offline; a trusted desktop client can optionally make
@@ -153,12 +161,13 @@ who just want a charming desk creature should begin with the [DIY guide](docs/DI
 
 ## Known-good release
 
-The current software candidate provides twenty-one affects, intensity-scaled geometry, five coordinated
+The current release provides twenty-one affects, intensity-scaled geometry, five coordinated
 character beats, an animated mouth, smooth text scrolling, native icons, and synchronized binocular blinking.
 Small device-owned cues add a thinking hesitation, listening attention lead, success relief, uncertainty gaze
 aversion, restrained per-eye variation, and a slow neutral attention fade that resets with new intent. Its
-paired host stack adds the local MCP/HTTP control plane. Current build sizes, tests, physical-validation status,
-and limitations are recorded in [`STATUS.md`](STATUS.md).
+paired host stack adds the local MCP/HTTP control plane, approval-gated per-agent identities, and self-timed
+semantic scenes. Current build sizes, tests, physical-validation status, and limitations are recorded in
+[`STATUS.md`](STATUS.md).
 
 ## Make it yours
 

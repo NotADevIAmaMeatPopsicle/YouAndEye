@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://youandeye.local/schema/youandeye-profile.schema.json",
+  "title": "YouAndEye agent profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "kind",
+    "agent_id",
+    "revision",
+    "lifecycle",
+    "appearance",
+    "temperament",
+    "signature",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "protocol": {"const": "youandeye.profile/1"},
+    "kind": {"const": "profile"},
+    "agent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "revision": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+    "lifecycle": {"enum": ["draft", "previewed", "approved", "active"]},
+    "appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["iris_palette", "accent", "mouth_style"],
+      "properties": {
+        "iris_palette": {"enum": ["azure", "teal", "violet", "amber", "rose", "emerald"]},
+        "accent": {"enum": ["cyan", "violet", "gold", "coral", "mint", "blue"]},
+        "mouth_style": {"enum": ["minimal", "expressive", "text_friendly"]}
+      }
+    },
+    "temperament": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_energy", "blink_style", "gaze_style", "idle_temperament"],
+      "properties": {
+        "default_energy": {"type": "number", "minimum": 0.25, "maximum": 0.85},
+        "blink_style": {"enum": ["gentle", "natural", "lively"]},
+        "gaze_style": {"enum": ["soft", "attentive", "curious", "direct"]},
+        "idle_temperament": {"enum": ["calm", "curious", "playful", "focused"]}
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["affect", "message", "text_mode"],
+      "properties": {
+        "affect": {"enum": ["happy", "success", "playful", "encouraging", "reassuring"]},
+        "message": {"type": "string", "minLength": 1, "maxLength": 24},
+        "text_mode": {"enum": ["static", "scroll"]}
+      }
+    },
+    "created_at": {"type": "string", "minLength": 20, "maxLength": 40},
+    "updated_at": {"type": "string", "minLength": 20, "maxLength": 40}
+  }
+}

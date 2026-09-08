@@ -276,7 +276,12 @@ class PhysicalHttpBridgeTests(unittest.TestCase):
         self.assertEqual(202, response.status)
         self.assertTrue(receipt["delivery"]["sent"])
         self.assertEqual(
-            ["EMOTE THINKING 0.70", "SCROLL PLEASE WAIT..."], self.device.batches[-1]
+            [
+                "CONTEXT ATTENTIVE AWAY 0.50 0.50 0.30",
+                "EMOTE THINKING 0.70",
+                "SCROLL PLEASE WAIT...",
+            ],
+            self.device.batches[-1],
         )
 
     def test_device_endpoint_returns_physical_status(self) -> None:
@@ -286,6 +291,15 @@ class PhysicalHttpBridgeTests(unittest.TestCase):
             status = json.loads(response.read())
         self.assertEqual(200, response.status)
         self.assertTrue(status["connected"])
+
+    def test_profile_endpoint_reports_first_run_without_opening_a_new_contract(self) -> None:
+        with urllib.request.urlopen(
+            self.base_url + "/v1/profile", timeout=2
+        ) as response:
+            status = json.loads(response.read())
+        self.assertEqual(200, response.status)
+        self.assertEqual("profile_required", status["status"])
+        self.assertTrue(status["using_safe_default"])
 
     def test_physical_dispatch_rejects_a_frame_for_another_surface(self) -> None:
         body = json.dumps(fixture("frame-thinking.json")).encode("utf-8")

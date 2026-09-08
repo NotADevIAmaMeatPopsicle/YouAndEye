@@ -5,8 +5,8 @@
 
 .DESCRIPTION
     Adds a "youandeye" entry to claude_desktop_config.json exposing the project's
-    four semantic face tools:
-    express, face_status, face_capabilities, neutral.
+    six semantic face tools:
+    express, face_status, face_capabilities, neutral, configure_profile, perform.
 
     The script is additive and non-destructive:
       * an existing config is backed up before any write
@@ -26,6 +26,14 @@
     Print only the proposed YouandEye entry without writing anything. Existing
     desktop preferences and unrelated server configuration are never printed.
 
+.PARAMETER AgentId
+    Stable semantic identity used for this client's local profile. Defaults to
+    "claude.local" and must contain only letters, digits, dot, underscore, colon,
+    or hyphen.
+
+.PARAMETER ExpectedUsbSerial
+    Optional exact CP210x serial when more than one approved adapter is attached.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File tools\install_claude_desktop_mcp.ps1 -DryRun
     powershell -ExecutionPolicy Bypass -File tools\install_claude_desktop_mcp.ps1
@@ -34,11 +42,16 @@
 param(
     [string]$ProjectRoot,
     [string]$ConfigPath,
+    [string]$AgentId = 'claude.local',
+    [string]$ExpectedUsbSerial,
     [switch]$DryRun
 )
 
 $ErrorActionPreference = 'Stop'
 $SERVER_NAME = 'youandeye'
+if ($AgentId -notmatch '^[A-Za-z0-9._:-]{1,64}$') {
+    throw 'AgentId must be 1-64 characters using letters, digits, dot, underscore, colon, or hyphen.'
+}
 
 # --- Resolve project root -------------------------------------------------
 if (-not $ProjectRoot) {
@@ -89,12 +102,18 @@ if (-not $config) {
 }
 
 # --- Build the server entry ----------------------------------------------
+$serverEnv = [PSCustomObject]@{
+    YOUANDEYE_PORT      = 'auto'
+    YOUANDEYE_SOURCE_ID = $AgentId
+    YOUANDEYE_AGENT_ID  = $AgentId
+}
+if ($ExpectedUsbSerial) {
+    $serverEnv | Add-Member -MemberType NoteProperty -Name 'YOUANDEYE_USB_SERIAL' -Value $ExpectedUsbSerial
+}
 $serverEntry = [PSCustomObject]@{
     command = $uvPath
     args    = @('run', '--directory', $ProjectRoot, '--extra', 'serial', 'youandeye-mcp')
-    env     = [PSCustomObject]@{
-        YOUANDEYE_PORT = 'auto'
-    }
+    env     = $serverEnv
 }
 
 # --- Merge, preserving every unrelated server ----------------------------

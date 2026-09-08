@@ -6,7 +6,8 @@ blinks, gaze motion, and its neutral idle life.
 ```text
 MCP client ──STDIO──> host service ──USB serial──> classic ESP32
                           │                           ├─ two GC9D01 eyes
-local app ──loopback HTTP─┘                           └─ built-in SSD1306 mouth
+local app ──loopback HTTP─┤                           └─ built-in SSD1306 mouth
+                          └── local profile store
 ```
 
 ## Boundaries
@@ -17,6 +18,10 @@ local app ──loopback HTTP─┘                           └─ built-in SS
   RGB565 rendering; the board layer owns both LCDs and the OLED.
 - `schema/` and `protocol/examples/` are the machine-readable contract.
 - `simulator/` is the browser reference for poses and motion constants.
+- Agent profiles are local host data keyed by stable semantic identity. They select only curated color,
+  temperament, and mouth options; they never contain pixels or renderer geometry.
+- Semantic performances are bounded host-owned lists of emotional beats. The host schedules them while each
+  surface still owns interpolation, blinks, gaze motion, scrolling, and the final neutral rendering.
 
 The release firmware is USB-only. It starts no access point, stores no Wi-Fi credentials, and exposes no
 device HTTP server. The optional host HTTP adapter binds only to loopback.
@@ -33,6 +38,11 @@ device HTTP server. The optional host HTTP adapter binds only to loopback.
    also develops a slow, bounded attention fade; the next semantic intent resets it immediately.
 7. Expired intent decays to the compiled-in neutral baseline.
 
+On first contact, an unrecognized agent reports `profile_required` while continuing to use the safe default.
+The profile lifecycle is `draft → previewed → approved → active`; updates return only the candidate to draft,
+leaving the last approved profile active until its replacement is approved. Profiles are selected from
+`YOUANDEYE_AGENT_ID`, falling back to the semantic source identity.
+
 ## Concurrency and failure behavior
 
 - One scheduler thread handles all host-side expirations; frames do not create timers.
@@ -43,6 +53,8 @@ device HTTP server. The optional host HTTP adapter binds only to loopback.
 - Repeated busy, absent, wrong-firmware, timeout, or I/O failures open a short retry circuit.
 - A disconnect never freezes a reaction pose: firmware autonomy continues and the next successful command
   reconciles authoritative state.
+- Starting a new scene may replace or reject an active scene. `neutral` and an explicit `perform` cancellation
+  interrupt safely, and completion, cancellation, timeout, and failure all restore the selected neutral profile.
 - Blink timing remains binocular; only a restrained 0–3% closure-depth difference is randomized so the face
   feels organic without repeating the previously rejected inter-eye lag.
 

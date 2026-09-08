@@ -49,6 +49,7 @@ class ExpressionServiceTests(unittest.TestCase):
             session_id="test-session",
             monotonic_ms=lambda: self.now,
             schedule_expiry=False,
+            performance_time_scale=0,
         )
 
     def tearDown(self) -> None:
@@ -172,12 +173,17 @@ class ExpressionServiceTests(unittest.TestCase):
         self.assertTrue(receipt["ok"])
         self.assertEqual(["EMOTE NEUTRAL 0.45", "MOUTH AUTO"], self.device.batches[-1])
 
-    def test_mcp_surface_exposes_only_semantic_tools(self) -> None:
+    def test_mcp_surface_preserves_legacy_tools_and_adds_semantic_extensions(self) -> None:
         server = create_mcp(self.service)
         tools = asyncio.run(server.list_tools())
+        names = {tool.name for tool in tools}
         self.assertEqual(
             {"express", "face_status", "face_capabilities", "neutral"},
-            {tool.name for tool in tools},
+            names & {"express", "face_status", "face_capabilities", "neutral"},
+        )
+        self.assertEqual(
+            {"configure_profile", "perform"},
+            names - {"express", "face_status", "face_capabilities", "neutral"},
         )
         express = next(tool for tool in tools if tool.name == "express")
         properties = express.inputSchema["properties"]
@@ -191,6 +197,14 @@ class ExpressionServiceTests(unittest.TestCase):
         self.assertIn("reassuring", affect_schema["enum"])
         self.assertNotIn("port", properties)
         self.assertNotIn("pixels", properties)
+        perform = next(tool for tool in tools if tool.name == "perform")
+        perform_properties = perform.inputSchema["properties"]
+        self.assertIn("beats", perform_properties)
+        self.assertNotIn("coordinates", perform_properties)
+        self.assertNotIn("pixels", perform_properties)
+
+        resources = asyncio.run(server.list_resources())
+        self.assertIn("youandeye://profile", {str(resource.uri) for resource in resources})
 
 
 if __name__ == "__main__":

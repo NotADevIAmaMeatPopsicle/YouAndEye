@@ -89,6 +89,21 @@ enum MouthDisplayMode
   MOUTH_SEQUENCE
 };
 
+enum ProfileMouthStyle
+{
+  PROFILE_MOUTH_MINIMAL,
+  PROFILE_MOUTH_EXPRESSIVE,
+  PROFILE_MOUTH_TEXT_FRIENDLY
+};
+
+struct PendingSemanticContext
+{
+  bool active = false;
+  EyeBehaviorMode mode = MODE_ATTENTIVE;
+  emote_gaze_mode_t gaze = EMOTE_GAZE_WANDER;
+  emote_modifiers_t modifiers = {0.5f, 0.5f, 0.3f};
+};
+
 enum CharacterBeatKind
 {
   BEAT_NONE,
@@ -207,6 +222,13 @@ static HeltecMouthDisplay mouthDisplay;
 static MouthDisplayMode mouthDisplayMode = MOUTH_AUTO;
 static char customMouthText[65] = {};
 static CharacterBeatState characterBeat;
+static emote_personality_t activePersonality = {
+    EMOTE_BLINK_NATURAL,
+    EMOTE_GAZE_ATTENTIVE,
+    EMOTE_IDLE_CALM,
+    0.5f};
+static ProfileMouthStyle profileMouthStyle = PROFILE_MOUTH_EXPRESSIVE;
+static PendingSemanticContext pendingSemanticContext;
 
 static void applyPreset(EyePreset preset);
 static void applyAffect(emote_affect_t affect);
@@ -237,6 +259,12 @@ static const char *mouthModeLabel()
 
 static HeltecMouthShape mouthShapeForAffect(emote_affect_t affect)
 {
+  if (profileMouthStyle == PROFILE_MOUTH_TEXT_FRIENDLY)
+  {
+    return affect == EMOTE_SPEAKING
+               ? HeltecMouthShape::SPEAKING
+               : HeltecMouthShape::NEUTRAL;
+  }
   switch (affect)
   {
   case EMOTE_HAPPY:
@@ -255,7 +283,9 @@ static HeltecMouthShape mouthShapeForAffect(emote_affect_t affect)
   case EMOTE_EMBARRASSED:
   case EMOTE_SUSPICIOUS:
   case EMOTE_PLAYFUL:
-    return HeltecMouthShape::SMIRK;
+    return profileMouthStyle == PROFILE_MOUTH_MINIMAL
+               ? HeltecMouthShape::NEUTRAL
+               : HeltecMouthShape::SMIRK;
   case EMOTE_SAD:
   case EMOTE_CONCERNED:
   case EMOTE_ERROR:
@@ -538,6 +568,90 @@ static const char *behaviorModeLabel(EyeBehaviorMode mode)
   }
 }
 
+static const char *blinkStyleLabel(emote_blink_style_t style)
+{
+  switch (style)
+  {
+  case EMOTE_BLINK_GENTLE: return "gentle";
+  case EMOTE_BLINK_LIVELY: return "lively";
+  case EMOTE_BLINK_NATURAL:
+  default: return "natural";
+  }
+}
+
+static const char *gazeStyleLabel(emote_gaze_style_t style)
+{
+  switch (style)
+  {
+  case EMOTE_GAZE_SOFT: return "soft";
+  case EMOTE_GAZE_CURIOUS: return "curious";
+  case EMOTE_GAZE_DIRECT: return "direct";
+  case EMOTE_GAZE_ATTENTIVE:
+  default: return "attentive";
+  }
+}
+
+static const char *idleStyleLabel(emote_idle_style_t style)
+{
+  switch (style)
+  {
+  case EMOTE_IDLE_CURIOUS: return "curious";
+  case EMOTE_IDLE_PLAYFUL: return "playful";
+  case EMOTE_IDLE_FOCUSED: return "focused";
+  case EMOTE_IDLE_CALM:
+  default: return "calm";
+  }
+}
+
+static const char *profileMouthStyleLabel(ProfileMouthStyle style)
+{
+  switch (style)
+  {
+  case PROFILE_MOUTH_MINIMAL: return "minimal";
+  case PROFILE_MOUTH_TEXT_FRIENDLY: return "text_friendly";
+  case PROFILE_MOUTH_EXPRESSIVE:
+  default: return "expressive";
+  }
+}
+
+static bool blinkStyleFromName(const char *value, emote_blink_style_t &style)
+{
+  if (tokenEquals(value, "GENTLE")) style = EMOTE_BLINK_GENTLE;
+  else if (tokenEquals(value, "NATURAL")) style = EMOTE_BLINK_NATURAL;
+  else if (tokenEquals(value, "LIVELY")) style = EMOTE_BLINK_LIVELY;
+  else return false;
+  return true;
+}
+
+static bool gazeStyleFromName(const char *value, emote_gaze_style_t &style)
+{
+  if (tokenEquals(value, "SOFT")) style = EMOTE_GAZE_SOFT;
+  else if (tokenEquals(value, "ATTENTIVE")) style = EMOTE_GAZE_ATTENTIVE;
+  else if (tokenEquals(value, "CURIOUS")) style = EMOTE_GAZE_CURIOUS;
+  else if (tokenEquals(value, "DIRECT")) style = EMOTE_GAZE_DIRECT;
+  else return false;
+  return true;
+}
+
+static bool idleStyleFromName(const char *value, emote_idle_style_t &style)
+{
+  if (tokenEquals(value, "CALM")) style = EMOTE_IDLE_CALM;
+  else if (tokenEquals(value, "CURIOUS")) style = EMOTE_IDLE_CURIOUS;
+  else if (tokenEquals(value, "PLAYFUL")) style = EMOTE_IDLE_PLAYFUL;
+  else if (tokenEquals(value, "FOCUSED")) style = EMOTE_IDLE_FOCUSED;
+  else return false;
+  return true;
+}
+
+static bool profileMouthStyleFromName(const char *value, ProfileMouthStyle &style)
+{
+  if (tokenEquals(value, "MINIMAL")) style = PROFILE_MOUTH_MINIMAL;
+  else if (tokenEquals(value, "EXPRESSIVE")) style = PROFILE_MOUTH_EXPRESSIVE;
+  else if (tokenEquals(value, "TEXT_FRIENDLY")) style = PROFILE_MOUTH_TEXT_FRIENDLY;
+  else return false;
+  return true;
+}
+
 static const char *displayDiagnosticLabel()
 {
   switch (displayDiagnosticMode)
@@ -580,7 +694,6 @@ static void submitSemanticTarget()
   }
 
   const uint32_t now = millis();
-  semanticTarget.mode = semanticMode(commandState.mode);
   semanticTarget.autonomy = commandState.autonomyEnabled;
   emote_motion_apply(&semanticMotion, &semanticTarget, now);
   lastMotionUpdateMs = now;
@@ -716,34 +829,62 @@ static bool applyPresetByName(const char *value)
   return false;
 }
 
-static bool applyBehaviorModeByName(const char *value)
+static bool behaviorModeFromName(const char *value, EyeBehaviorMode &mode)
 {
   if (tokenEquals(value, "IDLE"))
   {
-    commandState.mode = MODE_IDLE;
+    mode = MODE_IDLE;
     return true;
   }
   if (tokenEquals(value, "ATTENTIVE"))
   {
-    commandState.mode = MODE_ATTENTIVE;
+    mode = MODE_ATTENTIVE;
     return true;
   }
   if (tokenEquals(value, "SPEAKING"))
   {
-    commandState.mode = MODE_SPEAKING;
+    mode = MODE_SPEAKING;
     return true;
   }
   if (tokenEquals(value, "TRACKING"))
   {
-    commandState.mode = MODE_TRACKING;
+    mode = MODE_TRACKING;
     return true;
   }
   if (tokenEquals(value, "SLEEPY"))
   {
-    commandState.mode = MODE_SLEEPY;
+    mode = MODE_SLEEPY;
     return true;
   }
 
+  return false;
+}
+
+static bool applyBehaviorModeByName(const char *value)
+{
+  EyeBehaviorMode mode = MODE_ATTENTIVE;
+  if (!behaviorModeFromName(value, mode)) return false;
+  commandState.mode = mode;
+  return true;
+}
+
+static bool semanticGazeFromName(const char *value, emote_gaze_mode_t &gaze)
+{
+  if (tokenEquals(value, "POSE") || tokenEquals(value, "WANDER"))
+  {
+    gaze = EMOTE_GAZE_WANDER;
+    return true;
+  }
+  if (tokenEquals(value, "USER"))
+  {
+    gaze = EMOTE_GAZE_USER;
+    return true;
+  }
+  if (tokenEquals(value, "AWAY"))
+  {
+    gaze = EMOTE_GAZE_AWAY;
+    return true;
+  }
   return false;
 }
 
@@ -940,11 +1081,37 @@ static void applyAffectWithIntensity(emote_affect_t affect, float intensity)
 
   semanticTarget.affect = affect;
   semanticTarget.intensity = pose.intensity;
-  semanticTarget.mode = semanticMode(commandState.mode);
   semanticTarget.autonomy = commandState.autonomyEnabled;
-  semanticTarget.gaze_mode = EMOTE_GAZE_WANDER;
+  const emote_modifiers_t defaultModifiers = {0.5f, 0.5f, 0.3f};
+  const bool hasContext = pendingSemanticContext.active;
+  semanticTarget.mode = hasContext
+                            ? semanticMode(pendingSemanticContext.mode)
+                            : semanticMode(commandState.mode);
+  const emote_gaze_mode_t requestedGaze = hasContext
+                                               ? pendingSemanticContext.gaze
+                                               : EMOTE_GAZE_WANDER;
+  semanticTarget.gaze_mode = requestedGaze;
   semanticTarget.gaze_x = pose.gaze_x;
   semanticTarget.gaze_y = pose.gaze_y;
+  if (requestedGaze == EMOTE_GAZE_USER)
+  {
+    semanticTarget.gaze_x = 0.0f;
+    semanticTarget.gaze_y = 0.0f;
+  }
+  else if (requestedGaze == EMOTE_GAZE_AWAY)
+  {
+    // Semantic gaze aversion is deliberately bounded inside firmware. Agents
+    // never choose physical coordinates.
+    semanticTarget.gaze_mode = EMOTE_GAZE_POINT;
+    semanticTarget.gaze_x = -0.28f;
+    semanticTarget.gaze_y = 0.14f;
+  }
+  commandState.targetLookX = semanticTarget.gaze_x;
+  commandState.targetLookY = semanticTarget.gaze_y;
+  emote_motion_set_modifiers(
+      &semanticMotion,
+      hasContext ? &pendingSemanticContext.modifiers : &defaultModifiers);
+  pendingSemanticContext.active = false;
   semanticTarget.ttl_ms = 600000;
   semanticTarget.decay = EMOTE_DECAY_EASE_OUT;
   semanticTarget.decay_duration_ms = 1200;
@@ -1101,6 +1268,9 @@ static void printHelp()
   Serial.println("  HELP");
   Serial.println("  STATUS");
   Serial.println("  MOTION                  shared motion telemetry");
+  Serial.println("  PROFILE <blink> <gaze> <idle> <mouth> <energy>");
+  Serial.println("  PROFILE STATUS          current bounded identity style");
+  Serial.println("  CONTEXT <mode> <gaze> <warmth> <confidence> <urgency>");
   Serial.println("  AUTONOMY ON|OFF");
   Serial.println("  MODE IDLE|ATTENTIVE|SPEAKING|TRACKING|SLEEPY");
   Serial.println("  LOOK <x> <y>          range -1.0..1.0");
@@ -1127,7 +1297,7 @@ static void printHelp()
 static void printStatus()
 {
   Serial.printf(
-      "STATUS renderer=%s pipeline=%d/%d display=%s rotations=%u,%u mouth=%d/%s affect=%s autonomy=%d mode=%s preset=%s targetLookX=%.2f targetLookY=%.2f liveLookX=%.2f liveLookY=%.2f pupil=%.2f open=%.2f focus=%.2f blink=%.2f frameUs=%lu computeUs=%lu transferUs=%lu maxFrameUs=%lu fps=%.1f misses=%lu shaded=%lu iris=%u,%u,%u\n",
+      "STATUS renderer=%s pipeline=%d/%d display=%s rotations=%u,%u mouth=%d/%s affect=%s autonomy=%d mode=%s preset=%s targetLookX=%.2f targetLookY=%.2f liveLookX=%.2f liveLookY=%.2f pupil=%.2f open=%.2f focus=%.2f blink=%.2f frameUs=%lu computeUs=%lu transferUs=%lu maxFrameUs=%lu fps=%.1f misses=%lu shaded=%lu iris=%u,%u,%u profile=%s/%s/%s/%s energy=%.2f\n",
       rendererLabel(),
       parallelRendererEnabled ? 1 : 0,
       parallelRendererReady ? 1 : 0,
@@ -1157,7 +1327,12 @@ static void printStatus()
       (unsigned long)lastShadedPixels,
       commandState.irisInner.r,
       commandState.irisInner.g,
-      commandState.irisInner.b);
+      commandState.irisInner.b,
+      blinkStyleLabel(activePersonality.blink_style),
+      gazeStyleLabel(activePersonality.gaze_style),
+      idleStyleLabel(activePersonality.idle_style),
+      profileMouthStyleLabel(profileMouthStyle),
+      activePersonality.energy);
 }
 
 static void printMotionStatus()
@@ -1189,7 +1364,7 @@ static void processCommand(char *line)
   }
 
   if (tokenEquals(token, "EMOTE") || tokenEquals(token, "PRESET") ||
-      tokenEquals(token, "MOUTH") || tokenEquals(token, "TEXT") ||
+      tokenEquals(token, "TEXT") ||
       tokenEquals(token, "SCROLL") || tokenEquals(token, "QUESTION") ||
       tokenEquals(token, "ACK"))
   {
@@ -1212,6 +1387,76 @@ static void processCommand(char *line)
   if (tokenEquals(token, "MOTION"))
   {
     printMotionStatus();
+    return;
+  }
+
+  if (tokenEquals(token, "PROFILE"))
+  {
+    char *blinkToken = strtok(nullptr, " \t");
+    if (tokenEquals(blinkToken, "STATUS"))
+    {
+      Serial.printf(
+          "PROFILE blink=%s gaze=%s idle=%s mouth=%s energy=%.2f\n",
+          blinkStyleLabel(activePersonality.blink_style),
+          gazeStyleLabel(activePersonality.gaze_style),
+          idleStyleLabel(activePersonality.idle_style),
+          profileMouthStyleLabel(profileMouthStyle),
+          activePersonality.energy);
+      return;
+    }
+    emote_personality_t nextPersonality = activePersonality;
+    ProfileMouthStyle nextMouth = profileMouthStyle;
+    float energy = 0.0f;
+    if (!blinkStyleFromName(blinkToken, nextPersonality.blink_style) ||
+        !gazeStyleFromName(strtok(nullptr, " \t"), nextPersonality.gaze_style) ||
+        !idleStyleFromName(strtok(nullptr, " \t"), nextPersonality.idle_style) ||
+        !profileMouthStyleFromName(strtok(nullptr, " \t"), nextMouth) ||
+        !parseFloatToken(strtok(nullptr, " \t"), energy) ||
+        energy < 0.25f || energy > 0.85f || strtok(nullptr, " \t") != nullptr)
+    {
+      Serial.println("ERR PROFILE expects GENTLE|NATURAL|LIVELY SOFT|ATTENTIVE|CURIOUS|DIRECT CALM|CURIOUS|PLAYFUL|FOCUSED MINIMAL|EXPRESSIVE|TEXT_FRIENDLY 0.25..0.85");
+      return;
+    }
+    nextPersonality.energy = energy;
+    activePersonality = nextPersonality;
+    profileMouthStyle = nextMouth;
+    emote_motion_set_personality(&semanticMotion, &activePersonality, millis());
+    if (mouthDisplayMode == MOUTH_AUTO) refreshMouthDisplay();
+    Serial.printf(
+        "OK PROFILE %s %s %s %s %.2f\n",
+        blinkStyleLabel(activePersonality.blink_style),
+        gazeStyleLabel(activePersonality.gaze_style),
+        idleStyleLabel(activePersonality.idle_style),
+        profileMouthStyleLabel(profileMouthStyle),
+        activePersonality.energy);
+    return;
+  }
+
+  if (tokenEquals(token, "CONTEXT"))
+  {
+    PendingSemanticContext nextContext;
+    float warmth = 0.0f;
+    float confidence = 0.0f;
+    float urgency = 0.0f;
+    if (!behaviorModeFromName(strtok(nullptr, " \t"), nextContext.mode) ||
+        !semanticGazeFromName(strtok(nullptr, " \t"), nextContext.gaze) ||
+        !parseFloatToken(strtok(nullptr, " \t"), warmth) || warmth < 0.0f || warmth > 1.0f ||
+        !parseFloatToken(strtok(nullptr, " \t"), confidence) || confidence < 0.0f || confidence > 1.0f ||
+        !parseFloatToken(strtok(nullptr, " \t"), urgency) || urgency < 0.0f || urgency > 1.0f ||
+        strtok(nullptr, " \t") != nullptr)
+    {
+      Serial.println("ERR CONTEXT expects <mode> POSE|USER|AWAY|WANDER and three values in 0.0..1.0");
+      return;
+    }
+    nextContext.active = true;
+    nextContext.modifiers = {warmth, confidence, urgency};
+    pendingSemanticContext = nextContext;
+    Serial.printf(
+        "OK CONTEXT %s %.2f %.2f %.2f\n",
+        behaviorModeLabel(nextContext.mode),
+        warmth,
+        confidence,
+        urgency);
     return;
   }
 
@@ -1272,6 +1517,7 @@ static void processCommand(char *line)
 
     if (commandState.semanticAffectActive)
     {
+      semanticTarget.mode = semanticMode(commandState.mode);
       submitSemanticTarget();
     }
     else if (commandState.autonomyEnabled)
@@ -1492,9 +1738,11 @@ static void processCommand(char *line)
     if (tokenEquals(action, "STATUS"))
     {
       Serial.printf(
-          "MOUTH ready=%d mode=%s text=%s\n",
+          "MOUTH ready=%d mode=%s scrolling=%d scrollComplete=%d text=%s\n",
           mouthDisplay.ready() ? 1 : 0,
           mouthModeLabel(),
+          mouthDisplay.scrolling() ? 1 : 0,
+          mouthDisplay.scrollCycleCompleted() ? 1 : 0,
           mouthDisplay.text());
       return;
     }
@@ -1505,6 +1753,7 @@ static void processCommand(char *line)
     }
     if (tokenEquals(action, "AUTO"))
     {
+      cancelCharacterBeat();
       mouthDisplayMode = MOUTH_AUTO;
       refreshMouthDisplay();
       Serial.println("OK MOUTH auto");
@@ -1512,6 +1761,7 @@ static void processCommand(char *line)
     }
     if (tokenEquals(action, "BLANK"))
     {
+      cancelCharacterBeat();
       mouthDisplayMode = MOUTH_BLANK;
       refreshMouthDisplay();
       Serial.println("OK MOUTH blank");

@@ -49,7 +49,9 @@ class FakeSerial:
                     b"fps=30.5 misses=0\n"
                 )
             elif command == "MOUTH STATUS":
-                self._incoming.extend(b"MOUTH ready=1 mode=auto text=NEUTRAL\n")
+                self._incoming.extend(
+                    b"MOUTH ready=1 mode=auto scrolling=0 scrollComplete=1 text=NEUTRAL\n"
+                )
             else:
                 self._incoming.extend(f"OK {command.lower()}\n".encode())
         return len(payload)
@@ -121,6 +123,7 @@ class HeltecDeviceTests(unittest.TestCase):
         self.assertEqual("sdf", status["runtime"]["renderer"])
         self.assertEqual(0, status["runtime"]["misses"])
         self.assertEqual("auto", status["mouth"]["mode"])
+        self.assertEqual(1, status["mouth"]["scrollComplete"])
 
     def test_idle_lease_releases_the_serial_port(self) -> None:
         device = HeltecDevice(

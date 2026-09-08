@@ -13,6 +13,8 @@ SCHEMA_FILES = {
     "frame": "emote-frame.schema.json",
     "capabilities": "emote-capabilities.schema.json",
     "event": "emote-event.schema.json",
+    "profile": "youandeye-profile.schema.json",
+    "performance": "youandeye-performance.schema.json",
 }
 
 

@@ -18,6 +18,39 @@ enum {
     EMOTE_CHANNEL_COUNT
 };
 
+typedef enum {
+    EMOTE_BLINK_GENTLE,
+    EMOTE_BLINK_NATURAL,
+    EMOTE_BLINK_LIVELY
+} emote_blink_style_t;
+
+typedef enum {
+    EMOTE_GAZE_SOFT,
+    EMOTE_GAZE_ATTENTIVE,
+    EMOTE_GAZE_CURIOUS,
+    EMOTE_GAZE_DIRECT
+} emote_gaze_style_t;
+
+typedef enum {
+    EMOTE_IDLE_CALM,
+    EMOTE_IDLE_CURIOUS,
+    EMOTE_IDLE_PLAYFUL,
+    EMOTE_IDLE_FOCUSED
+} emote_idle_style_t;
+
+typedef struct {
+    emote_blink_style_t blink_style;
+    emote_gaze_style_t gaze_style;
+    emote_idle_style_t idle_style;
+    float energy;
+} emote_personality_t;
+
+typedef struct {
+    float warmth;
+    float confidence;
+    float urgency;
+} emote_modifiers_t;
+
 typedef struct {
     uint32_t transition_ms[EMOTE_CHANNEL_COUNT];
     bool transition_changed[EMOTE_CHANNEL_COUNT];
@@ -55,10 +88,17 @@ typedef struct {
     float saccade_target_x;
     float saccade_target_y;
     float breathing_phase;
+    emote_personality_t personality;
+    emote_modifiers_t modifiers;
     emote_motion_telemetry_t telemetry;
 } emote_motion_t;
 
 void emote_motion_init(emote_motion_t *motion, uint32_t seed, uint32_t now_ms);
+void emote_motion_set_personality(
+    emote_motion_t *motion,
+    const emote_personality_t *personality,
+    uint32_t now_ms);
+void emote_motion_set_modifiers(emote_motion_t *motion, const emote_modifiers_t *modifiers);
 void emote_motion_apply(emote_motion_t *motion, const emote_target_t *target, uint32_t now_ms);
 void emote_motion_request_blink(emote_motion_t *motion, uint32_t now_ms);
 void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds);

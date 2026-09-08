@@ -1,6 +1,7 @@
 # Agent interface
 
-YouAndEye exposes four semantic tools through a local STDIO MCP server. The MCP process validates intent,
+YouAndEye preserves its original four semantic tools and adds two bounded identity/performance tools through
+a local STDIO MCP server. The MCP process validates intent,
 arbitrates sources, and owns the verified USB serial connection; agents never control pixels or arbitrary
 serial commands.
 
@@ -27,6 +28,8 @@ Optional environment variables:
 | `YOUANDEYE_USB_SERIAL` | unset | Optional exact adapter serial when identical devices are attached |
 | `YOUANDEYE_BAUDRATE` | `115200` | Firmware serial rate |
 | `YOUANDEYE_SOURCE_ID` | `agent` | Human-readable source label |
+| `YOUANDEYE_AGENT_ID` | source id | Stable identity used to select a local profile |
+| `YOUANDEYE_PROFILE_DB` | OS user data directory | Optional profile database override |
 | `YOUANDEYE_YIELD_PATH` | repository-local | Override the cooperative upload marker location |
 
 The included `tools/install_claude_desktop_mcp.ps1` can add the STDIO entry to Claude Desktop without
@@ -73,6 +76,42 @@ Returns supported affects, sequences, channels, limits, and discovery state with
 ### `neutral`
 
 Clears pending host intent and immediately restores the autonomous neutral face.
+
+### `configure_profile`
+
+Manages the profile bound to `YOUANDEYE_AGENT_ID`. A first run reports `profile_required`, but the original
+expression tools continue through the safe default. The approval flow is deliberately explicit:
+
+```text
+create → preview → ask the user → approve → activate
+```
+
+`update` creates a new draft while preserving the last approved identity. `reset` removes only the current
+agent's local profile. The preview performs neutral, listening, thinking, and success before returning to the
+correct neutral face. Available values are curated rather than arbitrary colors or animation parameters.
+
+Profiles are stored locally at `%LOCALAPPDATA%\YouAndEye\profiles\profiles-v1.sqlite3` on Windows (or the
+platform user-data equivalent). Set `YOUANDEYE_PROFILE_DB` only when an integration needs another local path.
+The database and its journal files are ignored by Git.
+
+### `perform`
+
+Accepts a complete 1–16 beat scene in one call. Each beat supplies an affect, a pacing word (`glance`,
+`brief`, `normal`, `held`, or `lingering`), an optional caption, and optional semantic modifiers: warmth,
+confidence, urgency, and `none`/`brief`/`moderate` gaze aversion. The host calculates dwell and scrolling time.
+On the current firmware it also reads the OLED's scroll-completion signal, with the calculated envelope kept
+as a compatibility fallback for older or alternate surfaces.
+
+`perform(action="start")` returns completion directly by default and derives its deadline from the complete
+scene; set `wait_timeout_ms` only when a caller needs a shorter explicit ceiling. Use
+`wait_for_completion=false` and `perform(action="status")` for asynchronous work. `perform(action="cancel")`, `neutral`, or a new `express`
+call safely interrupts the scene. Completion, cancellation, timeout, and failure restore either the active
+profile's neutral or the explicitly selected safe neutral policy.
+
+### `youandeye://profile`
+
+This read-only resource reports `profile_required`, draft/preview/approval state, active styling, and the safe
+fallback. Agents should read it once at session start and never approve their own preview without the user.
 
 ## Serial ownership
 
@@ -121,5 +160,5 @@ It is a local integration API, not an authenticated remote service.
 ## Trust boundary
 
 STDIO MCP cannot distinguish individual upstream callers. Trusting a desktop client's MCP connection means
-trusting that client to invoke the four tools. The microcontroller itself is USB-only and exposes no Wi-Fi,
+trusting that client to invoke the six tools. The microcontroller itself is USB-only and exposes no Wi-Fi,
 access point, mDNS, or HTTP service.

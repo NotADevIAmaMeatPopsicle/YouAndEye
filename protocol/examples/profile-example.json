@@ -1,0 +1,25 @@
+{
+  "protocol": "youandeye.profile/1",
+  "kind": "profile",
+  "agent_id": "agent.example",
+  "revision": 1,
+  "lifecycle": "active",
+  "appearance": {
+    "iris_palette": "teal",
+    "accent": "mint",
+    "mouth_style": "expressive"
+  },
+  "temperament": {
+    "default_energy": 0.5,
+    "blink_style": "natural",
+    "gaze_style": "attentive",
+    "idle_temperament": "curious"
+  },
+  "signature": {
+    "affect": "reassuring",
+    "message": "WITH YOU",
+    "text_mode": "static"
+  },
+  "created_at": "2026-09-07T20:00:00.000Z",
+  "updated_at": "2026-09-07T20:00:00.000Z"
+}
