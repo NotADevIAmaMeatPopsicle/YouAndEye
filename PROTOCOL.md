@@ -82,10 +82,13 @@ aversion. It contains no duration keyframes, coordinates, or pixels. The host de
 surface's bounded motion and scroll envelope, exposes running/completed/cancelled/timed-out/failed feedback,
 and restores profile-neutral after every terminal path.
 
-The classic-ESP32 adapter carries identity through a bounded `PROFILE` command and one-shot scene context
-through `CONTEXT`. Those are private host-to-firmware details, not agent APIs: they accept only named styles,
-semantic gaze choices, and bounded scalar modifiers. `MOUTH STATUS` reports `scrollComplete`, allowing the
-host to advance after the physical OLED finishes; older or alternate surfaces use a conservative time bound.
+The classic-ESP32 eye adapter carries identity through a bounded `PROFILE` command and one-shot scene context
+through `CONTEXT`. The optional AMOLED adapter independently receives bounded `PROFILE`, `AFFECT`, and content
+commands. Those are private host-to-firmware details, not agent APIs: they accept only named styles, semantic
+choices, and bounded scalar modifiers. Every canonical affect has an authored mouth pose; the surface derives
+lip geometry, anticipation, inner-mouth detail, supporting accents, moving holds, and speech visemes locally.
+The active mouth reports `scrollComplete`, allowing the host to advance after the physical panel finishes;
+older or alternate surfaces use a conservative time bound.
 
 ## Safety limits
 

@@ -22,8 +22,11 @@ public:
   void showText(const char *text);
   void scrollText(const char *text);
   void blank();
+  void sleep();
+  void wake();
   void tick(uint32_t nowMs);
   bool ready() const { return initialized; }
+  bool sleeping() const { return !powered; }
   bool scrolling() const { return scrollActive; }
   bool scrollCycleCompleted() const { return completedScrollCycle; }
   const char *text() const { return currentText; }
@@ -35,6 +38,7 @@ private:
   static constexpr size_t MAX_LOGICAL_COLUMNS = 65 * 6;
 
   bool initialized = false;
+  bool powered = true;
   bool scrollActive = false;
   bool completedScrollCycle = false;
   bool mouthActive = false;

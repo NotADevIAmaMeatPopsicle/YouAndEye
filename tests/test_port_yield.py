@@ -37,6 +37,23 @@ class PortYieldTests(unittest.TestCase):
             self.assertEqual(marker.resolve(), configured)
             self.assertFalse(marker.exists())
 
+    def test_mouth_role_uses_an_independent_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            eye_marker = Path(directory) / "eyes.yield"
+            mouth_marker = Path(directory) / "mouth.yield"
+            with patch.dict(
+                os.environ,
+                {
+                    "YOUANDEYE_YIELD_PATH": str(eye_marker),
+                    "YOUANDEYE_AMOLED_YIELD_PATH": str(mouth_marker),
+                },
+            ):
+                self.assertEqual(mouth_marker.resolve(), yield_path("mouth"))
+                acquire(role="mouth")
+                self.assertTrue(mouth_marker.exists())
+                self.assertFalse(eye_marker.exists())
+                release(role="mouth")
+
     def test_acquire_waits_for_the_active_serial_lease(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             marker = Path(directory) / "port.yield"

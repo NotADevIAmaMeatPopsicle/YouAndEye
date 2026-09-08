@@ -85,7 +85,9 @@ def _semantic_context_command(frame: Mapping[str, Any]) -> str | None:
     )
 
 
-def commands_for_frame(frame: Mapping[str, Any]) -> list[str]:
+def commands_for_frame(
+    frame: Mapping[str, Any], *, external_mouth: bool = False
+) -> list[str]:
     """Translate one canonical emote/1 frame into the Heltec rig's local commands."""
 
     checked = validate_message(frame, "frame")
@@ -116,7 +118,15 @@ def commands_for_frame(frame: Mapping[str, Any]) -> list[str]:
         and mode == "none"
     ):
         context = [context_command] if context_command is not None else []
+        if external_mouth:
+            return context + ["MOUTH OFF", f"BEAT {HELTEC_SEQUENCE_COMMANDS[sequence]}"]
         return context + [f"BEAT {HELTEC_SEQUENCE_COMMANDS[sequence]}"]
+
+    if external_mouth:
+        commands.append("MOUTH OFF")
+        if not commands:
+            raise HeltecTransportError("frame mutes every supported Heltec channel")
+        return commands
 
     if utterance_muted:
         commands.append("MOUTH BLANK")

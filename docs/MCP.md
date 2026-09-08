@@ -27,10 +27,14 @@ Optional environment variables:
 | `YOUANDEYE_PORT` | `auto` | Explicit serial port or safe single-device discovery |
 | `YOUANDEYE_USB_SERIAL` | unset | Optional exact adapter serial when identical devices are attached |
 | `YOUANDEYE_BAUDRATE` | `115200` | Firmware serial rate |
+| `YOUANDEYE_AMOLED_MODE` | `auto` | Discover the optional round mouth; use `off` to force the Heltec OLED |
+| `YOUANDEYE_AMOLED_PORT` | `auto` | Explicit round-mouth port or safe single-device discovery |
+| `YOUANDEYE_AMOLED_USB_SERIAL` | unset | Optional exact native-USB serial for shared workstations |
 | `YOUANDEYE_SOURCE_ID` | `agent` | Human-readable source label |
 | `YOUANDEYE_AGENT_ID` | source id | Stable identity used to select a local profile |
 | `YOUANDEYE_PROFILE_DB` | OS user data directory | Optional profile database override |
 | `YOUANDEYE_YIELD_PATH` | repository-local | Override the cooperative upload marker location |
+| `YOUANDEYE_AMOLED_YIELD_PATH` | repository-local | Override the round-mouth upload marker location |
 
 The included `tools/install_claude_desktop_mcp.ps1` can add the STDIO entry to Claude Desktop without
 committing machine paths:
@@ -63,15 +67,20 @@ message are mutually exclusive.
 Prefer eyes-only calls for ordinary listening, thinking, uncertainty, and reassurance. Add mouth text when it
 clarifies content, confirms an important action, or provides useful status; it should support the expression,
 not carry the emotion by itself. Intensity changes the rendered geometry rather than merely tagging the frame.
+On the round AMOLED, the same semantic affect selects a dedicated cartoony mouth performance. Warmth influences
+softness, confidence influences breadth, urgency influences tempo, and intensity controls expression strength;
+the agent never selects lip coordinates or animation frames.
 
 ### `face_status`
 
-Reads the active semantic state and live firmware telemetry, including connection, renderer, display,
-mouth mode, frame rate, and missed deadlines. It may open the serial connection.
+Reads the active semantic state and live firmware telemetry, including both controller connections, selected
+display mode, renderer, mouth mode, scrolling completion, frame rate, and missed deadlines. It may open the
+serial connections.
 
 ### `face_capabilities`
 
-Returns supported affects, sequences, channels, limits, and discovery state without opening the port.
+Returns supported affects, sequences, channels, limits, discovery state, and the mouth surface's semantic
+styles, modifiers, content modes, local-animation ownership, and completion feedback without opening the port.
 
 ### `neutral`
 
@@ -99,8 +108,8 @@ The database and its journal files are ignored by Git.
 Accepts a complete 1–16 beat scene in one call. Each beat supplies an affect, a pacing word (`glance`,
 `brief`, `normal`, `held`, or `lingering`), an optional caption, and optional semantic modifiers: warmth,
 confidence, urgency, and `none`/`brief`/`moderate` gaze aversion. The host calculates dwell and scrolling time.
-On the current firmware it also reads the OLED's scroll-completion signal, with the calculated envelope kept
-as a compatibility fallback for older or alternate surfaces.
+On current firmware it reads scroll-completion from whichever mouth is active, with the calculated envelope
+kept as a compatibility fallback for older or alternate surfaces.
 
 `perform(action="start")` returns completion directly by default and derives its deadline from the complete
 scene; set `wait_timeout_ms` only when a caller needs a shorter explicit ceiling. Use
@@ -115,14 +124,15 @@ fallback. Agents should read it once at session start and never approve their ow
 
 ## Serial ownership
 
-Only one process can own the board's serial port. The MCP service holds it while active, releases it after
-10 seconds of inactivity, and reacquires it on demand. PlatformIO uploads use a repository-local yield marker
-plus an OS-level lease lock; upload waits until the service has actually closed the port.
+Only one process can own each board's serial port. The MCP service holds each active controller while in use,
+releases it after 10 seconds of inactivity, and reacquires it on demand. The eye and mouth use separate lease
+files so a stalled optional surface cannot block the other one.
 
 For another hardware command, use the same handoff explicitly:
 
 ```powershell
 uv run --extra serial youandeye-port-yield run -- <YOUR_COMMAND>
+uv run --extra serial youandeye-port-yield --role mouth run -- <YOUR_AMOLED_COMMAND>
 ```
 
 The marker expires automatically if a process crashes. Repeated connection failures also enter a short
@@ -132,7 +142,7 @@ cooldown so a busy or missing device cannot make every tool call stall.
 
 | Code | Meaning |
 |---|---|
-| `device_absent` | No approved CP210x device is present |
+| `device_absent` | No approved controller of the requested role is present |
 | `device_ambiguous` | More than one approved adapter was found; configure an exact device |
 | `wrong_device` | The requested port does not match the required USB identity |
 | `wrong_firmware` | The serial endpoint lacks the YouAndEye `STATUS` signature |
@@ -151,6 +161,7 @@ Local applications can run:
 
 ```powershell
 uv run --extra serial youandeye-bridge --heltec-port auto
+uv run --extra serial youandeye-bridge --heltec-port auto --amoled-port auto
 ```
 
 The bridge offers `POST /v1/frames`, `GET /v1/state`, `GET /v1/capabilities`, `GET /v1/device`, and

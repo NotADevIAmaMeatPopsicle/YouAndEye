@@ -86,7 +86,8 @@ enum MouthDisplayMode
   MOUTH_CUSTOM,
   MOUTH_SCROLL,
   MOUTH_BLANK,
-  MOUTH_SEQUENCE
+  MOUTH_SEQUENCE,
+  MOUTH_OFF
 };
 
 enum ProfileMouthStyle
@@ -251,6 +252,8 @@ static const char *mouthModeLabel()
     return "blank";
   case MOUTH_SEQUENCE:
     return "sequence";
+  case MOUTH_OFF:
+    return "off";
   case MOUTH_AUTO:
   default:
     return "auto";
@@ -302,7 +305,7 @@ static HeltecMouthShape mouthShapeForAffect(emote_affect_t affect)
 
 static void refreshMouthDisplay()
 {
-  if (!mouthDisplay.ready())
+  if (!mouthDisplay.ready() || mouthDisplayMode == MOUTH_OFF)
   {
     return;
   }
@@ -1185,6 +1188,7 @@ static uint32_t characterBeatDurationMs(CharacterBeatKind kind)
 
 static void showCharacterBeatText(const char *text, bool scroll)
 {
+  if (mouthDisplayMode == MOUTH_OFF) return;
   snprintf(customMouthText, sizeof(customMouthText), "%s", text);
   if (scroll) mouthDisplay.scrollText(customMouthText);
   else mouthDisplay.showText(customMouthText);
@@ -1205,8 +1209,11 @@ static bool startCharacterBeat(CharacterBeatKind kind)
   cancelCharacterBeat();
   characterBeat.kind = kind;
   characterBeat.startedAtMs = millis();
-  mouthDisplayMode = MOUTH_SEQUENCE;
-  mouthDisplay.showMouth(HeltecMouthShape::NEUTRAL);
+  if (mouthDisplayMode != MOUTH_OFF)
+  {
+    mouthDisplayMode = MOUTH_SEQUENCE;
+    mouthDisplay.showMouth(HeltecMouthShape::NEUTRAL);
+  }
   applyAffect(characterBeatAffect(kind));
   return true;
 }
@@ -1230,17 +1237,18 @@ static void tickCharacterBeat(uint32_t nowMs)
     case BEAT_NONE: break;
     }
   }
-  if (characterBeat.kind == BEAT_SUCCESS && characterBeat.revealed &&
+  if (mouthDisplayMode != MOUTH_OFF && characterBeat.kind == BEAT_SUCCESS && characterBeat.revealed &&
       !characterBeat.followupShown && elapsed >= 900)
   {
     characterBeat.followupShown = true;
     showCharacterBeatText("GOOD JOB!", true);
   }
-  const bool waitingForScroll = mouthDisplay.scrolling() && !mouthDisplay.scrollCycleCompleted();
+  const bool waitingForScroll = mouthDisplayMode != MOUTH_OFF &&
+                                mouthDisplay.scrolling() && !mouthDisplay.scrollCycleCompleted();
   if (elapsed >= characterBeatDurationMs(characterBeat.kind) && !waitingForScroll)
   {
     characterBeat = {};
-    mouthDisplayMode = MOUTH_AUTO;
+    if (mouthDisplayMode != MOUTH_OFF) mouthDisplayMode = MOUTH_AUTO;
     customMouthText[0] = '\0';
     applyAffect(EMOTE_NEUTRAL);
   }
@@ -1279,7 +1287,7 @@ static void printHelp()
   Serial.println("  FOCUS <value>         range 0.00..0.60");
   Serial.println("  PRESET NATURAL|ALERT|SLEEPY|CURIOUS|FOCUSED");
   Serial.println("  EMOTE <canonical affect> [0.0..1.0]  neutral, happy, thinking, error, ...");
-  Serial.println("  MOUTH AUTO|BLANK|STATUS  built-in Heltec OLED mode");
+  Serial.println("  MOUTH AUTO|BLANK|OFF|STATUS  built-in Heltec OLED mode");
   Serial.println("  TEXT <message>|CLEAR|BLANK  show text on the built-in OLED");
   Serial.println("  SCROLL <message>        framed software-scroll OLED text");
   Serial.println("  QUESTION <message>      listening eyes plus question text");
@@ -1754,6 +1762,7 @@ static void processCommand(char *line)
     if (tokenEquals(action, "AUTO"))
     {
       cancelCharacterBeat();
+      mouthDisplay.wake();
       mouthDisplayMode = MOUTH_AUTO;
       refreshMouthDisplay();
       Serial.println("OK MOUTH auto");
@@ -1762,12 +1771,21 @@ static void processCommand(char *line)
     if (tokenEquals(action, "BLANK"))
     {
       cancelCharacterBeat();
+      mouthDisplay.wake();
       mouthDisplayMode = MOUTH_BLANK;
       refreshMouthDisplay();
       Serial.println("OK MOUTH blank");
       return;
     }
-    Serial.println("ERR MOUTH expects AUTO, BLANK, or STATUS");
+    if (tokenEquals(action, "OFF"))
+    {
+      cancelCharacterBeat();
+      mouthDisplayMode = MOUTH_OFF;
+      mouthDisplay.sleep();
+      Serial.println("OK MOUTH off");
+      return;
+    }
+    Serial.println("ERR MOUTH expects AUTO, BLANK, OFF, or STATUS");
     return;
   }
 
@@ -1788,6 +1806,7 @@ static void processCommand(char *line)
       Serial.println("ERR TEXT built-in OLED unavailable");
       return;
     }
+    mouthDisplay.wake();
     if (tokenEquals(value, "CLEAR"))
     {
       mouthDisplayMode = MOUTH_AUTO;
@@ -1828,6 +1847,7 @@ static void processCommand(char *line)
       Serial.println("ERR SCROLL built-in OLED unavailable");
       return;
     }
+    mouthDisplay.wake();
     snprintf(customMouthText, sizeof(customMouthText), "%s", value);
     mouthDisplayMode = MOUTH_SCROLL;
     refreshMouthDisplay();
@@ -1852,6 +1872,7 @@ static void processCommand(char *line)
       Serial.println("ERR QUESTION built-in OLED unavailable");
       return;
     }
+    mouthDisplay.wake();
     snprintf(customMouthText, sizeof(customMouthText), "? %.61s", value);
     mouthDisplayMode = strlen(customMouthText) > 19 ? MOUTH_SCROLL : MOUTH_CUSTOM;
     refreshMouthDisplay();
@@ -1872,6 +1893,7 @@ static void processCommand(char *line)
       Serial.println("ERR ACK built-in OLED unavailable");
       return;
     }
+    mouthDisplay.wake();
     snprintf(customMouthText, sizeof(customMouthText), "%s", value && value[0] ? value : "OK");
     mouthDisplayMode = MOUTH_CUSTOM;
     refreshMouthDisplay();

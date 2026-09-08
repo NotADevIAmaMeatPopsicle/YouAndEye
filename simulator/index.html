@@ -33,7 +33,26 @@ body{
 }
 body[data-surface="heltec"] .device-shell{padding:20px 24px 22px;border-radius:52px 52px 38px 38px}
 body[data-surface="heltec"] canvas.eye{border-radius:50%;image-rendering:pixelated}
-body[data-surface="heltec"] .matrix-bezel{margin-top:15px;padding:5px 7px;border-radius:9px}
+body[data-mouth-display="oled"] .matrix-bezel{margin-top:15px;padding:5px 7px;border-radius:9px}
+body[data-mouth-display="oled"] canvas#matrix{width:128px;height:64px;border-radius:5px;image-rendering:pixelated}
+body[data-mouth-display="oled"] .mouth-screen-tag{display:none}
+body[data-mouth-display="amoled"] .device-shell{
+  padding:25px 34px 38px;border-radius:72px 72px 118px 118px;
+  background:linear-gradient(150deg,#e3d8c7 0%,#b5aa99 47%,#777168 100%);
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.62),inset 0 -13px 28px rgba(35,29,23,.34),
+    0 34px 68px -26px #000,0 0 0 1px rgba(236,225,205,.38)}
+body[data-mouth-display="amoled"] .device-shell:before{inset:13px;border-radius:59px 59px 103px 103px}
+body[data-mouth-display="amoled"] .matrix-bezel{
+  position:relative;margin-top:22px;padding:10px;border-radius:50%;background:#090a0c;
+  box-shadow:inset 0 2px 7px #000,0 0 0 4px #3b3834,0 10px 25px -12px #000,
+    0 0 34px -13px color-mix(in srgb,var(--accent) 62%,transparent)}
+body[data-mouth-display="amoled"] canvas#matrix{
+  display:block;width:244px;height:244px;border-radius:50%;image-rendering:auto;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 0 28px -12px var(--accent)}
+body[data-mouth-display="amoled"] .mouth-screen-tag{
+  position:absolute;left:50%;bottom:17px;transform:translateX(-50%);z-index:2;
+  font:8px/1 var(--mono);letter-spacing:.16em;color:rgba(255,255,255,.28);white-space:nowrap;
+  pointer-events:none}
 .wrap{max-width:1180px;margin:0 auto;padding:34px 24px 72px}
 
 /* ---------- header ---------- */
@@ -172,11 +191,13 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
 @media(max-width:720px){
   .wrap{padding:20px 12px 50px}.device-shell{padding:16px 18px 20px;border-radius:36px}
   .eyes{gap:8px}canvas.eye{width:calc((100vw - 92px)/2);height:auto}
-  canvas#matrix{width:min(72vw,388px);height:auto}.telemetry{grid-template-columns:repeat(2,1fr)}
+  body[data-mouth-display="amoled"] .device-shell{padding:18px 20px 30px;border-radius:48px 48px 76px 76px}
+  body[data-mouth-display="amoled"] canvas#matrix{width:min(62vw,244px);height:auto}
+  .telemetry{grid-template-columns:repeat(2,1fr)}
 }
 </style>
 </head>
-<body data-surface="heltec">
+<body data-surface="heltec" data-mouth-display="amoled">
 
 <div class="wrap">
 <header>
@@ -190,8 +211,8 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
   </div>
   <div class="hdr-meta">
     <b>panel</b> <span id="panelMeta">160 × 160 · GC9D01</span><br>
-    <b>mouth</b> <span id="matrixMeta">128 × 64 · SSD1306</span><br>
-    <b>target</b> <span id="targetMeta">Heltec WiFi Kit 32</span><br>
+    <b>mouth</b> <span id="matrixMeta">466 × 466 · CO5300 AMOLED</span><br>
+    <b>target</b> <span id="targetMeta">dual-controller YouAndEye rig</span><br>
     <b>bridge</b> <span id="bridgeStatus">standalone</span>
   </div>
 </header>
@@ -204,7 +225,10 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
           <div class="eye-slot"><canvas class="eye" id="eyeL" width="160" height="160"></canvas><span class="slot-tag">CS1 · L</span></div>
           <div class="eye-slot"><canvas class="eye" id="eyeR" width="160" height="160"></canvas><span class="slot-tag">CS2 · R</span></div>
         </div>
-        <div class="matrix-bezel"><canvas id="matrix" width="128" height="64"></canvas></div>
+        <div class="matrix-bezel">
+          <canvas id="matrix" width="466" height="466" aria-label="Mouth display preview"></canvas>
+          <span class="mouth-screen-tag" id="mouthHardwareTag">466 · AMOLED</span>
+        </div>
       </div>
       <div class="rubric-note" id="rubricNote">Live render · utterance channel enabled</div>
     </div>
@@ -225,11 +249,29 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
       <div class="mod-body"><div class="chips" id="chips"></div></div>
     </section>
 
+    <section class="mod" id="mouthStudioModule">
+      <h2>AMOLED mouth studio</h2>
+      <div class="mod-body">
+        <div class="ctl"><label for="sMouthAffect">expression source</label>
+          <select id="sMouthAffect"><option value="linked" selected>linked to face</option></select></div>
+        <div class="ctl"><label for="sMouthIntensity">intensity</label><output id="oMouthIntensity">0.70</output>
+          <input type="range" id="sMouthIntensity" min="0" max="1" step="0.01" value="0.70"></div>
+        <div class="ctl"><label for="sMouthWarmth">warmth</label><output id="oMouthWarmth">0.50</output>
+          <input type="range" id="sMouthWarmth" min="0" max="1" step="0.01" value="0.50"></div>
+        <div class="ctl"><label for="sMouthConfidence">confidence</label><output id="oMouthConfidence">0.65</output>
+          <input type="range" id="sMouthConfidence" min="0" max="1" step="0.01" value="0.65"></div>
+        <div class="ctl"><label for="sMouthUrgency">urgency</label><output id="oMouthUrgency">0.35</output>
+          <input type="range" id="sMouthUrgency" min="0" max="1" step="0.01" value="0.35"></div>
+        <button type="button" class="blind-reset" id="mouthReel">Play 21-state mouth reel</button>
+        <div class="audit" id="mouthStatus" aria-live="polite">neutral · calm line · local breathing</div>
+      </div>
+    </section>
+
     <section class="mod" id="sequenceModule">
       <h2>Character beats</h2>
       <div class="mod-body">
         <div class="chips" id="beatChips"></div>
-        <div class="audit" id="beatStatus" aria-live="polite">Ready · eyes lead OLED reveal by 300 ms</div>
+        <div class="audit" id="beatStatus" aria-live="polite">Ready · eyes lead mouth reveal by 300 ms</div>
       </div>
     </section>
 
@@ -288,9 +330,11 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
     <section class="mod" id="rendererModule">
       <h2>Renderer</h2>
       <div class="mod-body">
-        <div class="ctl"><label for="sSurface">surface profile</label>
-          <select id="sSurface"><option value="heltec" selected>physical Heltec · 160×160 + 128×64</option><option value="concept">future concept · 240×320 + 32×8</option></select></div>
-        <div class="ctl"><label for="sMouthMode">OLED preview</label>
+        <div class="ctl"><label for="sSurface">eye hardware</label>
+          <select id="sSurface"><option value="heltec" selected>physical Heltec eyes · 160×160</option><option value="concept">future portrait eyes · 240×320</option></select></div>
+        <div class="ctl"><label for="sMouthDisplay">mouth hardware</label>
+          <select id="sMouthDisplay"><option value="amoled" selected>round AMOLED · 466×466</option><option value="oled">built-in OLED · 128×64</option></select></div>
+        <div class="ctl"><label for="sMouthMode">mouth content</label>
           <select id="sMouthMode"><option value="mouth" selected>animated character mouth</option><option value="utterance">text and icons</option></select></div>
         <div class="ctl"><label for="sRendererProfile">render profile</label>
           <select id="sRendererProfile"><option value="heltec-fast">current Heltec fast path</option><option value="p2" selected>P2 material study</option></select></div>
@@ -336,7 +380,7 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
 </div>
 
 <section class="notes">
-  <h2>Heltec finish map</h2>
+  <h2>Expression finish map</h2>
   <p>The two renderer profiles keep comparison honest: <b>Heltec fast path</b> models the integer,
      frame-budgeted build; <b>P2 material study</b> previews the softer finish available to the future
      portrait surface. Both use the same poses, motion, tapered brows, and face proportions.</p>
@@ -370,12 +414,30 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
       <div class="f-num">FINDING 05</div>
       <h3>Act as one face</h3>
       <p>The remaining choreography gate is five composed beats: attention, thinking, success, error,
-         and playful. Eyes lead; the OLED reveal follows; explicit text and icon commands still preempt.</p>
+         and playful. Eyes lead; the selected mouth display follows; explicit text and icon commands still preempt.</p>
+    </div>
+    <div class="finding">
+      <div class="f-num">FINDING 06</div>
+      <h3>Mouths act, not label</h3>
+      <p>All twenty-one affects now select distinct lip geometry, aperture, asymmetry, inner-mouth detail,
+         and a restrained supporting accent. The emotion remains legible before a caption appears.</p>
+    </div>
+    <div class="finding">
+      <div class="f-num">FINDING 07</div>
+      <h3>Empathy lives in restraint</h3>
+      <p>Listening softens, concern parts slightly, uncertainty wavers, embarrassment blushes, and reassurance
+         settles into warmth. Sparkles, hearts, and alert marks are reserved for the moments that earn them.</p>
+    </div>
+    <div class="finding">
+      <div class="f-num">FINDING 08</div>
+      <h3>The surface owns continuity</h3>
+      <p>Anticipation, staggered lip channels, moving holds, and six local speech visemes continue between agent
+         updates. Agents still choose meaning, never pixels, coordinates, or animation keyframes.</p>
     </div>
   </div>
 
-  <p class="kicker"><b>Finish rule:</b> simulator comparison first, one verified hardware flash second,
-     then a six-state read and 60-second combined soak. The accepted OLED treatment stays frozen.</p>
+  <p class="kicker"><b>Finish rule:</b> simulator comparison first, verified role-specific flashes second,
+     then a six-state read and combined soak. The accepted eye geometry and OLED fallback stay frozen.</p>
 </section>
 </div>
 
@@ -490,7 +552,7 @@ var blinkPhase=0, blinkT=0, nextBlink=1.6, dblPending=false, blinkPreview=null, 
 var sacX=0, sacY=0, sacVX=0, sacVY=0, sacTX=0, sacTY=0, nextSac=0.9;
 var breathe=0, tRun=0;
 
-var UI={legacy:false,auto:true,brows:true,spec:true,span:true,zoom:false,view:'live',surface:'heltec',mouthMode:'mouth'};
+var UI={legacy:false,auto:true,brows:true,spec:true,span:true,zoom:false,view:'live',surface:'heltec',mouthDisplay:'amoled',mouthMode:'mouth'};
 var manual={gx:null,gy:null,open:null,pupil:null,lidL:null,browY:null,browRot:null,asym:null,arc:null,shape:null,hue:null};
 var CHANNELS={
   gaze:{keys:['gx','gy'],delay:0,omega:21,tol:0.016,velTol:0.035},
@@ -517,6 +579,32 @@ var profileStyle={agentId:null,revision:0,irisPalette:'azure',accent:'blue',defa
   blinkStyle:'natural',gazeStyle:'attentive',idleTemperament:'calm',mouthStyle:'expressive'};
 var semanticModifiers={warmth:0.5,confidence:0.65,urgency:0.35,gazeAversion:'none'};
 var profilePreviewTimers=[];
+var MOUTH_POSES={
+  neutral:{width:.50,open:.018,curve:.06,skew:0,roundness:.72,teeth:0,tongue:0,deco:'none',label:'calm line'},
+  listening:{width:.48,open:.035,curve:.24,skew:-.02,roundness:.72,teeth:0,tongue:0,deco:'none',label:'attentive softness'},
+  thinking:{width:.40,open:.025,curve:.10,skew:.28,roundness:.76,teeth:0,tongue:0,deco:'thought',label:'pondering corner'},
+  working:{width:.42,open:.018,curve:-.04,skew:0,roundness:.68,teeth:0,tongue:0,deco:'thought',label:'focused line'},
+  happy:{width:.61,open:.13,curve:.68,skew:0,roundness:.70,teeth:.20,tongue:.08,deco:'none',label:'bright smile'},
+  encouraging:{width:.56,open:.065,curve:.52,skew:-.03,roundness:.72,teeth:0,tongue:0,deco:'none',label:'supportive smile'},
+  reassuring:{width:.50,open:.040,curve:.36,skew:0,roundness:.76,teeth:0,tongue:0,deco:'none',label:'steady warmth'},
+  excited:{width:.68,open:.40,curve:.70,skew:0,roundness:.64,teeth:.34,tongue:.16,deco:'sparkle',label:'sparkling grin'},
+  success:{width:.62,open:.24,curve:.56,skew:-.08,roundness:.68,teeth:.28,tongue:.08,deco:'check',label:'proud check-grin'},
+  delighted:{width:.66,open:.62,curve:.62,skew:0,roundness:.60,teeth:.26,tongue:.34,deco:'sparkle',label:'open delight'},
+  surprised:{width:.36,open:.96,curve:0,skew:0,roundness:1.18,teeth:0,tongue:.10,deco:'none',label:'round gasp'},
+  curious:{width:.36,open:.22,curve:.08,skew:-.30,roundness:1.05,teeth:0,tongue:0,deco:'thought',label:'curious o'},
+  suspicious:{width:.52,open:.025,curve:.22,skew:.72,roundness:.68,teeth:0,tongue:0,deco:'none',label:'side-eye smirk'},
+  playful:{width:.60,open:.34,curve:.58,skew:.34,roundness:.64,teeth:.12,tongue:.56,deco:'sparkle',label:'tongue-out grin'},
+  sad:{width:.53,open:.035,curve:-.64,skew:0,roundness:.72,teeth:0,tongue:0,deco:'none',label:'trembling frown'},
+  concerned:{width:.48,open:.12,curve:-.34,skew:-.10,roundness:.80,teeth:0,tongue:0,deco:'sweat',label:'worried part'},
+  uncertain:{width:.45,open:.028,curve:-.08,skew:.22,roundness:.76,teeth:0,tongue:0,deco:'sweat',label:'wavering line'},
+  embarrassed:{width:.44,open:.04,curve:.28,skew:.30,roundness:.72,teeth:0,tongue:0,deco:'blush',label:'sheepish smile'},
+  love:{width:.24,open:.20,curve:0,skew:0,roundness:1.28,teeth:0,tongue:0,deco:'heart',label:'heart-kiss'},
+  error:{width:.52,open:.02,curve:-.10,skew:0,roundness:.68,teeth:0,tongue:0,deco:'alert',label:'tense zigzag'},
+  speaking:{width:.56,open:.42,curve:.08,skew:0,roundness:.78,teeth:.10,tongue:.20,deco:'none',label:'animated visemes'}
+};
+var mouthControl={state:'linked',intensity:.70,reel:null,reelIndex:0};
+var mouthMotion={state:'neutral',changedAt:performance.now(),lastAt:performance.now(),
+  width:.50,open:.018,curve:.06,skew:0,roundness:.72,teeth:0,tongue:0};
 
 /* ---------------- math helpers ---------------- */
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
@@ -676,6 +764,12 @@ function applySemanticModifiers(input){
     urgency:clamp(Number(input.urgency===undefined?0.35:input.urgency),0,1),
     gazeAversion:['none','brief','moderate'].indexOf(input.gaze_aversion)>=0?input.gaze_aversion:'none'
   };
+  var mouthBindings=[['sMouthWarmth','oMouthWarmth','warmth'],['sMouthConfidence','oMouthConfidence','confidence'],['sMouthUrgency','oMouthUrgency','urgency']];
+  mouthBindings.forEach(function(binding){
+    var inputElement=document.getElementById(binding[0]),output=document.getElementById(binding[1]);
+    if(inputElement) inputElement.value=semanticModifiers[binding[2]];
+    if(output) output.textContent=semanticModifiers[binding[2]].toFixed(2);
+  });
   return Object.assign({},semanticModifiers);
 }
 
@@ -1085,48 +1179,216 @@ function buildMsg(t){
   cols=Array(8).fill(0).concat(cols,Array(12).fill(0));
   return cols;
 }
+function accentRgba(alpha){
+  var hex=PROFILE_ACCENTS[profileStyle.accent]||PROFILE_ACCENTS.blue;
+  var value=parseInt(hex.slice(1),16);
+  return 'rgba('+((value>>16)&255)+','+((value>>8)&255)+','+(value&255)+','+alpha+')';
+}
+function drawAmoledHeart(cx,cy,size){
+  mCtx.beginPath();
+  mCtx.moveTo(cx,cy+size*.78);
+  mCtx.bezierCurveTo(cx-size*1.18,cy+size*.04,cx-size*.72,cy-size*.92,cx,cy-size*.34);
+  mCtx.bezierCurveTo(cx+size*.72,cy-size*.92,cx+size*1.18,cy+size*.04,cx,cy+size*.78);
+  mCtx.closePath();
+}
+function drawAmoledIcon(label){
+  var cx=mCv.width/2,cy=mCv.height/2,size=mCv.width*.16;
+  mCtx.save();
+  mCtx.strokeStyle=PROFILE_ACCENTS[profileStyle.accent];
+  mCtx.fillStyle=accentRgba(.92);mCtx.lineWidth=22;mCtx.lineCap='round';mCtx.lineJoin='round';
+  mCtx.shadowColor=PROFILE_ACCENTS[profileStyle.accent];mCtx.shadowBlur=34;
+  if(label==='CHECK'){
+    mCtx.beginPath();mCtx.moveTo(cx-size*.9,cy);mCtx.lineTo(cx-size*.2,cy+size*.65);mCtx.lineTo(cx+size,cy-size*.75);mCtx.stroke();
+  }else if(label==='LEFT'||label==='RIGHT'||label==='ARROW LEFT'||label==='ARROW RIGHT'){
+    var direction=(label==='LEFT'||label==='ARROW LEFT')?-1:1;
+    mCtx.beginPath();mCtx.moveTo(cx-direction*size,cy);mCtx.lineTo(cx+direction*size,cy);
+    mCtx.moveTo(cx+direction*size,cy);mCtx.lineTo(cx+direction*size*.35,cy-size*.65);
+    mCtx.moveTo(cx+direction*size,cy);mCtx.lineTo(cx+direction*size*.35,cy+size*.65);mCtx.stroke();
+  }else if(label==='BURST'||label==='SPARK'){
+    drawMouthSparkle(cx,cy,size*.72,PROFILE_ACCENTS[profileStyle.accent]);
+  }else if(label==='ELLIPSIS'||label==='DOTS'||label==='PROCESSING'){
+    [-1,0,1].forEach(function(index){mCtx.beginPath();mCtx.arc(cx+index*size*.72,cy,size*.18,0,Math.PI*2);mCtx.fill();});
+  }else if(label==='QUESTION'||label==='EXCLAMATION'||label==='ALERT'){
+    mCtx.font='700 '+Math.round(size*1.65)+'px '+getComputedStyle(document.documentElement).getPropertyValue('--mono');
+    mCtx.textAlign='center';mCtx.textBaseline='middle';mCtx.fillText(label==='QUESTION'?'?':'!',cx,cy);
+  }else{
+    drawAmoledHeart(cx,cy,size);mCtx.fill();
+  }
+  mCtx.restore();
+}
+function drawAmoledCaption(){
+  var label=String(msg||'').replace(/\x01/g,'HEART').trim().toUpperCase();
+  if(['HEART','LOVE','CHECK','SUCCESS','LEFT','RIGHT','ARROW LEFT','ARROW RIGHT','BURST','SPARK','ELLIPSIS','DOTS','PROCESSING','QUESTION','EXCLAMATION','ALERT'].indexOf(label)>=0){
+    drawAmoledIcon(label);return;
+  }
+  var safe=mCv.width*.72, fontSize=label.length<=7?58:(label.length<=12?46:38);
+  mCtx.save();
+  mCtx.beginPath();mCtx.arc(mCv.width/2,mCv.height/2,mCv.width*.41,0,Math.PI*2);mCtx.clip();
+  mCtx.font='650 '+fontSize+'px '+getComputedStyle(document.documentElement).getPropertyValue('--mono');
+  mCtx.textBaseline='middle';mCtx.textAlign='left';mCtx.fillStyle=PROFILE_ACCENTS[profileStyle.accent];
+  mCtx.shadowColor=PROFILE_ACCENTS[profileStyle.accent];mCtx.shadowBlur=18;
+  var width=mCtx.measureText(label).width, x=(mCv.width-width)/2;
+  if(width>safe){
+    var travel=width+safe+80, phase=(scroll*92)%travel;
+    x=(mCv.width+safe)/2-phase;
+  }
+  mCtx.fillText(label,x,mCv.height/2+4);
+  mCtx.restore();
+}
+function mouthStateName(){return mouthControl.state==='linked'?current:mouthControl.state;}
+function mouthTarget(now){
+  var name=mouthStateName(), base=MOUTH_POSES[name]||MOUTH_POSES.neutral;
+  var value=mouthControl.state==='linked'?clamp(Number(T.intensity===undefined?.7:T.intensity),0,1):mouthControl.intensity;
+  var expression=.72+value*.34;
+  var target={state:name,label:base.label,deco:profileStyle.mouthStyle==='expressive'?base.deco:'none',
+    width:clamp(base.width*(.90+semanticModifiers.confidence*.16),.20,.76),
+    open:clamp(base.open*expression,0,1),curve:clamp(base.curve*expression+(semanticModifiers.warmth-.5)*.16,-.82,.90),
+    skew:clamp(base.skew*(.72+value*.32),-1,1),roundness:base.roundness,
+    teeth:profileStyle.mouthStyle==='minimal'?0:base.teeth,tongue:profileStyle.mouthStyle==='minimal'?0:base.tongue};
+  if(name==='speaking'){
+    var opens=[.08,.30,.62,.36,.78,.24], widths=[.48,.56,.62,.50,.42,.58], phase=Math.floor(now/125)%opens.length;
+    target.open=opens[phase]*expression;target.width=widths[phase];
+  }
+  if(profileStyle.mouthStyle==='text_friendly') target.width*=.78;
+  return target;
+}
+function updateMouthMotion(now){
+  var target=mouthTarget(now),dt=clamp((now-mouthMotion.lastAt)/1000,0,.05);mouthMotion.lastAt=now;
+  if(target.state!==mouthMotion.state){mouthMotion.state=target.state;mouthMotion.changedAt=now;}
+  var rates={width:4.1,open:7.0,curve:3.4,skew:2.9,roundness:3.8,teeth:4.2,tongue:3.4};
+  Object.keys(rates).forEach(function(key){mouthMotion[key]=mix(mouthMotion[key],target[key],1-Math.exp(-rates[key]*dt));});
+  var elapsed=now-mouthMotion.changedAt, anticipation=1;
+  if(elapsed<72) anticipation=1-.08*Math.sin(elapsed/72*Math.PI);
+  else if(elapsed<260) anticipation=1+.045*Math.sin((elapsed-72)/188*Math.PI);
+  return Object.assign({},mouthMotion,{width:mouthMotion.width*anticipation,deco:target.deco,label:target.label});
+}
+function mouthPath(p,cx,cy){
+  var path=new Path2D(), halfWidth=mCv.width*.5*p.width, halfGap=8+p.open*80, steps=42;
+  function point(index,top){
+    var nx=-1+index*2/steps,edge=Math.sqrt(Math.max(0,1-nx*nx)),envelope=Math.pow(edge,Math.max(.35,p.roundness));
+    var center=cy+p.curve*68*(1-nx*nx)-p.skew*30*nx,gap=halfGap*envelope;
+    return [cx+nx*halfWidth,center+(top?-gap*.82:gap*1.18)];
+  }
+  var start=point(0,true);path.moveTo(start[0],start[1]);
+  for(var i=1;i<=steps;i++){var top=point(i,true);path.lineTo(top[0],top[1]);}
+  for(var j=steps;j>=0;j--){var bottom=point(j,false);path.lineTo(bottom[0],bottom[1]);}
+  path.closePath();return {path:path,halfWidth:halfWidth,halfGap:halfGap};
+}
+function drawMouthSparkle(x,y,size,color){
+  mCtx.save();mCtx.strokeStyle=color;mCtx.lineCap='round';mCtx.lineWidth=Math.max(3,size/6);
+  mCtx.beginPath();mCtx.moveTo(x-size,y);mCtx.lineTo(x+size,y);mCtx.moveTo(x,y-size);mCtx.lineTo(x,y+size);
+  mCtx.moveTo(x-size*.62,y-size*.62);mCtx.lineTo(x+size*.62,y+size*.62);
+  mCtx.moveTo(x+size*.62,y-size*.62);mCtx.lineTo(x-size*.62,y+size*.62);mCtx.stroke();mCtx.restore();
+}
+function drawMouthDecorations(p,cx,cy,now){
+  if(p.deco==='none') return;
+  var accent=PROFILE_ACCENTS[profileStyle.accent],pulse=.5+.5*Math.sin(now/(135-semanticModifiers.urgency*35));
+  mCtx.save();mCtx.strokeStyle=accent;mCtx.fillStyle=accent;mCtx.shadowColor=accent;mCtx.shadowBlur=18;mCtx.lineCap='round';
+  if(p.deco==='thought'){
+    [ [cx+85,cy-88,6],[cx+107,cy-110,9],[cx+137,cy-135,12+pulse*3] ].forEach(function(v){mCtx.globalAlpha=.42+(v[2]/18);mCtx.beginPath();mCtx.arc(v[0],v[1],v[2],0,Math.PI*2);mCtx.fill();});
+  }else if(p.deco==='sparkle'){
+    drawMouthSparkle(cx-121,cy-100,14+pulse*8,accent);drawMouthSparkle(cx+127,cy+88,9+(1-pulse)*6,accent);
+  }else if(p.deco==='check'){
+    mCtx.globalAlpha=.92;mCtx.lineWidth=10;mCtx.beginPath();mCtx.moveTo(cx+88,cy-103);mCtx.lineTo(cx+105,cy-86);mCtx.lineTo(cx+139,cy-127);mCtx.stroke();
+  }else if(p.deco==='heart'){
+    mCtx.globalAlpha=.92;drawAmoledHeart(cx+107,cy-104-pulse*7,30);mCtx.fill();
+  }else if(p.deco==='blush'){
+    mCtx.globalAlpha=.65;mCtx.lineWidth=6;[-1,1].forEach(function(side){for(var i=-1;i<=1;i++){
+      var x=cx+side*(132+i*16);mCtx.beginPath();mCtx.moveTo(x-side*7,cy+53);mCtx.lineTo(x+side*7,cy+67);mCtx.stroke();
+    }});
+  }else if(p.deco==='sweat'){
+    var x=cx+121,y=cy-112+pulse*4;mCtx.beginPath();mCtx.moveTo(x,y-22);mCtx.bezierCurveTo(x-25,y+9,x-18,y+30,x,y+30);mCtx.bezierCurveTo(x+18,y+30,x+25,y+9,x,y-22);mCtx.fill();
+  }else if(p.deco==='alert'){
+    mCtx.globalAlpha=.78;mCtx.lineWidth=8;[-1,1].forEach(function(side){var x=cx+side*142;mCtx.beginPath();mCtx.moveTo(x,cy-76);mCtx.lineTo(x-side*16,cy-52);mCtx.lineTo(x+side*5,cy-50);mCtx.lineTo(x-side*11,cy-25);mCtx.stroke();});
+  }
+  mCtx.restore();
+}
+function drawClosedAmoledMouth(p,cx,cy,now){
+  var accent=PROFILE_ACCENTS[profileStyle.accent],half=mCv.width*.5*p.width,line=profileStyle.mouthStyle==='minimal'?10:16;
+  mCtx.save();mCtx.translate(cx,cy);mCtx.lineCap='round';mCtx.lineJoin='round';mCtx.strokeStyle=accent;mCtx.lineWidth=line;
+  mCtx.shadowColor=accent;mCtx.shadowBlur=profileStyle.mouthStyle==='minimal'?12:30;mCtx.beginPath();
+  if(p.state==='error'){
+    var jitter=Math.sin(now/58)*(1+semanticModifiers.urgency*2);
+    mCtx.moveTo(-half,jitter);mCtx.lineTo(-half*.5,-13+jitter);mCtx.lineTo(0,10+jitter);mCtx.lineTo(half*.5,-13+jitter);mCtx.lineTo(half,jitter);
+  }else if(p.state==='uncertain'){
+    var wobble=Math.sin(now/68)*3;
+    mCtx.moveTo(-half,p.skew*18+wobble);mCtx.quadraticCurveTo(-half*.52,-11-wobble,-half*.08,2+wobble);
+    mCtx.quadraticCurveTo(half*.42,15-wobble,half,-p.skew*18+wobble);
+  }else{
+    mCtx.moveTo(-half,p.skew*24);mCtx.quadraticCurveTo(0,p.curve*78,half,-p.skew*24);
+  }
+  mCtx.stroke();
+  if(p.state==='listening'||p.state==='encouraging'||p.state==='reassuring'){
+    mCtx.beginPath();mCtx.arc(-half,p.skew*24,line*.58,0,Math.PI*2);mCtx.arc(half,-p.skew*24,line*.58,0,Math.PI*2);mCtx.fillStyle=accent;mCtx.fill();
+  }
+  mCtx.restore();
+}
+function drawOpenAmoledMouth(p,cx,cy){
+  var accent=PROFILE_ACCENTS[profileStyle.accent],built=mouthPath(p,cx,cy),path=built.path;
+  mCtx.save();mCtx.shadowColor=accent;mCtx.shadowBlur=32;mCtx.strokeStyle=accent;
+  mCtx.lineWidth=profileStyle.mouthStyle==='minimal'?10:16;
+  var cavity=mCtx.createRadialGradient(cx,cy-built.halfGap*.25,8,cx,cy,built.halfWidth*.9);
+  cavity.addColorStop(0,'#2a0a24');cavity.addColorStop(.58,'#100510');cavity.addColorStop(1,'#030205');
+  mCtx.fillStyle=cavity;mCtx.fill(path);mCtx.stroke(path);mCtx.shadowBlur=0;
+  mCtx.clip(path);
+  if(p.teeth>.02){
+    var toothH=built.halfGap*p.teeth*1.4,teeth=mCtx.createLinearGradient(0,cy-built.halfGap,0,cy);
+    teeth.addColorStop(0,'#fffdf0');teeth.addColorStop(1,'#d9e9ee');mCtx.fillStyle=teeth;
+    mCtx.beginPath();mCtx.ellipse(cx,cy-built.halfGap*.62,built.halfWidth*.78,Math.max(7,toothH),0,0,Math.PI*2);mCtx.fill();
+  }
+  if(p.tongue>.02){
+    var tongueH=built.halfGap*(.24+p.tongue*.38),tongue=mCtx.createLinearGradient(0,cy,0,cy+built.halfGap);
+    tongue.addColorStop(0,'#ff9ab3');tongue.addColorStop(1,'#d9467b');mCtx.fillStyle=tongue;
+    mCtx.beginPath();mCtx.ellipse(cx+p.skew*12,cy+built.halfGap*.82,built.halfWidth*.60,tongueH,0,0,Math.PI*2);mCtx.fill();
+  }
+  mCtx.restore();
+}
+function drawAmoledMouth(){
+  var w=mCv.width,h=mCv.height,cx=w/2,cy=h/2+8;
+  mCtx.save();
+  mCtx.beginPath();mCtx.arc(cx,h/2,w/2,0,Math.PI*2);mCtx.clip();
+  var bg=mCtx.createRadialGradient(cx,h*.42,8,cx,h/2,w*.53);
+  bg.addColorStop(0,'#10171b');bg.addColorStop(.55,'#050708');bg.addColorStop(1,'#000');
+  mCtx.fillStyle=bg;mCtx.fillRect(0,0,w,h);
+  mCtx.strokeStyle=accentRgba(.14);mCtx.lineWidth=2;
+  mCtx.beginPath();mCtx.arc(cx,h/2,w*.445,0,Math.PI*2);mCtx.stroke();
+  if(UI.view!=='live'){mCtx.restore();return;}
+  if(UI.mouthMode==='utterance'){drawAmoledCaption();mCtx.restore();return;}
+  var now=performance.now(),p=updateMouthMotion(now),life=Math.sin(now/(980-profileStyle.defaultEnergy*260));
+  cy+=life*(1.2+profileStyle.defaultEnergy*2.6);
+  if(p.state==='uncertain') cy+=Math.sin(now/68)*2.2;
+  if(p.state==='delighted'||p.state==='excited'||p.state==='success') cy-=Math.abs(Math.sin(now/210))*(1+profileStyle.defaultEnergy*2);
+  if(p.open>.085) drawOpenAmoledMouth(p,cx,cy); else drawClosedAmoledMouth(p,cx,cy,now);
+  drawMouthDecorations(p,cx,cy,now);
+  var status=document.getElementById('mouthStatus');
+  if(status) status.textContent=p.state+' · '+p.label+' · '+p.deco+(p.state==='speaking'?' · local visemes':' · moving hold');
+  mCtx.restore();
+}
 function drawMatrix(){
+  if(UI.mouthDisplay==='amoled'){drawAmoledMouth();return;}
+  var legacyStatus=document.getElementById('mouthStatus');
+  if(legacyStatus) legacyStatus.textContent=current+' · compact OLED fallback · pixel mouth';
   mCtx.fillStyle='#070b10'; mCtx.fillRect(0,0,mCv.width,mCv.height);
   if(UI.view!=='live') return;
   var activeBits=UI.mouthMode==='mouth'?mouthForState(current):msgBits;
   var wide = UI.mouthMode==='utterance' && msgWidth>MCOLS;
   var off = wide ? Math.floor(scroll)%activeBits.length : 0;
-  if(UI.surface==='heltec'){
-    var pitch=3, dot=2, ox=16, oy=20;
-    mCtx.save();
-    mCtx.shadowColor=PROFILE_ACCENTS[profileStyle.accent]; mCtx.shadowBlur=profileStyle.mouthStyle==='minimal'?2:4;
-    mCtx.fillStyle=PROFILE_ACCENTS[profileStyle.accent];
-    mCtx.fillRect(6,10,116,1); mCtx.fillRect(6,53,116,1);
-    mCtx.fillRect(6,11,1,42); mCtx.fillRect(121,11,1,42);
-    mCtx.shadowBlur=0;
-    for(var hc=0;hc<MCOLS;hc++){
-      var hcol=activeBits[(hc+off)%activeBits.length];
-      for(var hr=0;hr<MROWS;hr++){
-        var hon=(hcol>>hr)&1, hx=ox+hc*pitch, hy=oy+hr*pitch;
-        mCtx.fillStyle=hon?PROFILE_ACCENTS[profileStyle.accent]:'#09151d';
-        mCtx.fillRect(hx,hy,dot,dot);
-      }
-    }
-    mCtx.restore();
-    return;
-  }
-  var cw=Math.floor(mCv.width/MCOLS), pad=1;
-  var oy=Math.floor((mCv.height-cw*MROWS)/2);
-  for(var c=0;c<MCOLS;c++){
-    var colv=activeBits[(c+off)%activeBits.length];
-    for(var rw=0;rw<MROWS;rw++){
-      var on=(colv>>rw)&1;
-      var X=c*cw+pad, Y=oy+rw*cw+pad, W=cw-pad*2;
-      if(on){
-        mCtx.fillStyle='rgba(77,163,255,0.22)';
-        mCtx.fillRect(X-2,Y-2,W+4,W+4);
-        mCtx.fillStyle='#6fbcff';
-      } else {
-        mCtx.fillStyle='#101820';
-      }
-      mCtx.fillRect(X,Y,W,W);
+  var pitch=3, dot=2, ox=16, oy=20;
+  mCtx.save();
+  mCtx.shadowColor=PROFILE_ACCENTS[profileStyle.accent]; mCtx.shadowBlur=profileStyle.mouthStyle==='minimal'?2:4;
+  mCtx.fillStyle=PROFILE_ACCENTS[profileStyle.accent];
+  mCtx.fillRect(6,10,116,1); mCtx.fillRect(6,53,116,1);
+  mCtx.fillRect(6,11,1,42); mCtx.fillRect(121,11,1,42);
+  mCtx.shadowBlur=0;
+  for(var hc=0;hc<MCOLS;hc++){
+    var hcol=activeBits[(hc+off)%activeBits.length];
+    for(var hr=0;hr<MROWS;hr++){
+      var hon=(hcol>>hr)&1, hx=ox+hc*pitch, hy=oy+hr*pitch;
+      mCtx.fillStyle=hon?PROFILE_ACCENTS[profileStyle.accent]:'#09151d';
+      mCtx.fillRect(hx,hy,dot,dot);
     }
   }
+  mCtx.restore();
 }
 
 /* ------------------------------------------------------------------ *
@@ -1233,7 +1495,7 @@ function frame(now){
   presentEye(ctxL,imgL,srcCtxL,srcL); presentEye(ctxR,imgR,srcCtxR,srcR);
   var t1=performance.now();
 
-  scroll += dt*(UI.surface==='heltec'?8:13); drawMatrix();
+  scroll += dt*(UI.mouthDisplay==='oled'?8:1); drawMatrix();
 
   msAcc+=(t1-t0); frames++; acc+=dt;
   if(acc>=0.5){
@@ -1264,6 +1526,38 @@ ORDER.forEach(function(name){
   b.addEventListener('click',function(){ setState(name); });
   chips.appendChild(b);
 });
+var mouthAffect=document.getElementById('sMouthAffect');
+ORDER.forEach(function(name){
+  var option=document.createElement('option');option.value=name;option.textContent=name+' · '+MOUTH_POSES[name].label;
+  mouthAffect.appendChild(option);
+});
+function stopMouthReel(){
+  if(mouthControl.reel){clearTimeout(mouthControl.reel);mouthControl.reel=null;}
+  mouthControl.reelIndex=0;document.getElementById('mouthReel').textContent='Play 21-state mouth reel';
+}
+function runMouthReel(){
+  stopMouthReel();mouthControl.state=ORDER[0];mouthAffect.value=mouthControl.state;
+  document.getElementById('mouthReel').textContent='Stop mouth reel';
+  function advance(){
+    if(!mouthControl.reel && mouthControl.reelIndex>0) return;
+    if(mouthControl.reelIndex>=ORDER.length){stopMouthReel();mouthControl.state='linked';mouthAffect.value='linked';mouthMotion.state='';return;}
+    mouthControl.state=ORDER[mouthControl.reelIndex%ORDER.length];mouthAffect.value=mouthControl.state;
+    mouthMotion.changedAt=performance.now();mouthMotion.state='';
+    mouthControl.reelIndex++;
+    mouthControl.reel=setTimeout(advance,1050);
+  }
+  advance();
+}
+mouthAffect.addEventListener('change',function(){stopMouthReel();mouthControl.state=this.value;mouthMotion.state='';});
+document.getElementById('mouthReel').addEventListener('click',function(){if(mouthControl.reel) stopMouthReel();else runMouthReel();});
+document.getElementById('sMouthIntensity').addEventListener('input',function(){
+  mouthControl.intensity=parseFloat(this.value);document.getElementById('oMouthIntensity').textContent=mouthControl.intensity.toFixed(2);
+});
+[['sMouthWarmth','oMouthWarmth','warmth'],['sMouthConfidence','oMouthConfidence','confidence'],['sMouthUrgency','oMouthUrgency','urgency']].forEach(function(binding){
+  document.getElementById(binding[0]).addEventListener('input',function(){
+    semanticModifiers[binding[2]]=parseFloat(this.value);document.getElementById(binding[1]).textContent=semanticModifiers[binding[2]].toFixed(2);
+  });
+});
 function setState(name,preserveBeat,intensityOverride){
   if(!preserveBeat) cancelBeat(true);
   current=name;
@@ -1286,6 +1580,10 @@ function setState(name,preserveBeat,intensityOverride){
   document.getElementById('sShape').value=T.pupilShape;
   document.getElementById('sHue').value=T.hue;
   document.getElementById('sInt').value=S.intensity; document.getElementById('oInt').textContent=S.intensity.toFixed(2);
+  if(mouthControl.state==='linked'){
+    document.getElementById('sMouthIntensity').value=S.intensity;
+    document.getElementById('oMouthIntensity').textContent=S.intensity.toFixed(2);
+  }
   document.getElementById('tState').textContent=UI.view==='blind'?'hidden':name;
   Array.prototype.forEach.call(chips.children,function(c){
     c.setAttribute('aria-pressed', c.textContent===name?'true':'false'); });
@@ -1294,6 +1592,7 @@ function setState(name,preserveBeat,intensityOverride){
 function setMouthPreview(mode){
   UI.mouthMode=mode;
   document.getElementById('sMouthMode').value=mode;
+  updateRubricNote();
 }
 function cancelBeat(restoreMouth){
   beat.timers.forEach(clearTimeout); beat.timers=[];
@@ -1303,16 +1602,17 @@ function cancelBeat(restoreMouth){
     button.setAttribute('aria-pressed','false');
   });
   if(restoreMouth) setMouthPreview('mouth');
-  document.getElementById('beatStatus').textContent='Ready · eyes lead OLED reveal by 300 ms';
+  document.getElementById('beatStatus').textContent='Ready · eyes lead mouth reveal by 300 ms';
 }
 function revealBeatText(text){
   setMouthPreview('utterance');
   msg=String(text||'').toUpperCase(); msgBits=buildMsg(msg); scroll=0;
 }
 function scrollPassMs(text){
+  if(UI.mouthDisplay==='amoled') return Math.max(1500,String(text||'').length*135+900);
   var savedWidth=msgWidth, bits=buildMsg(String(text||'').toUpperCase());
   msgWidth=savedWidth;
-  return Math.ceil(bits.length/(UI.surface==='heltec'?8:13)*1000)+250;
+  return Math.ceil(bits.length/8*1000)+250;
 }
 function beatHoldMs(spec){
   var hold=spec.hold;
@@ -1331,7 +1631,7 @@ function runBeat(name,stateOverride){
   status.textContent=name+' · eyes lead';
   beat.timers.push(setTimeout(function(){
     if(beat.active!==name) return;
-    revealBeatText(spec.text); status.textContent=name+' · OLED reveal';
+    revealBeatText(spec.text); status.textContent=name+' · '+(UI.mouthDisplay==='amoled'?'AMOLED':'OLED')+' reveal';
   },300));
   if(spec.followText){
     beat.timers.push(setTimeout(function(){
@@ -1412,22 +1712,36 @@ function setSurfaceProfile(name){
   document.body.dataset.surface=UI.surface;
   cvL.width=cvR.width=heltec?160:240;
   cvL.height=cvR.height=heltec?160:320;
-  mCv.width=heltec?128:388;
-  mCv.height=heltec?64:100;
   tiny.height=heltec?32:Math.round(EH*32/EW);
   document.getElementById('panelMeta').textContent=heltec?'160 × 160 · GC9D01':'240 × 320 · RGB565';
-  document.getElementById('matrixMeta').textContent=heltec?'128 × 64 · SSD1306':'32 × 8 · HT16K33';
-  document.getElementById('targetMeta').textContent=heltec?'Heltec WiFi Kit 32':'ESP32-S3 @ 240 MHz';
-  document.getElementById('rubricNote').textContent=heltec?
-    'Physical Heltec preview · bright OLED · thin frame':'Future concept preview · logical 32 × 8 matrix';
+  document.getElementById('targetMeta').textContent=UI.mouthDisplay==='amoled'?
+    'dual-controller YouAndEye rig':(heltec?'Heltec WiFi Kit 32':'ESP32-S3 @ 240 MHz');
+  updateRubricNote();
   applyZoom();
   if(msg) { msgBits=buildMsg(msg); scroll=0; }
 }
+function updateRubricNote(){
+  var hardware=UI.mouthDisplay==='amoled'?'Round AMOLED head':'Built-in Heltec OLED';
+  var content=UI.mouthMode==='mouth'?'animated character mouth':'text and icon channel';
+  document.getElementById('rubricNote').textContent=hardware+' · '+content;
+}
+function setMouthDisplay(name){
+  UI.mouthDisplay=name==='oled'?'oled':'amoled';
+  document.body.dataset.mouthDisplay=UI.mouthDisplay;
+  var amoled=UI.mouthDisplay==='amoled';
+  mCv.width=amoled?466:128;mCv.height=amoled?466:64;
+  document.getElementById('sMouthDisplay').value=UI.mouthDisplay;
+  document.getElementById('matrixMeta').textContent=amoled?'466 × 466 · CO5300 AMOLED':'128 × 64 · SSD1306';
+  document.getElementById('targetMeta').textContent=amoled?'dual-controller YouAndEye rig':
+    (UI.surface==='heltec'?'Heltec WiFi Kit 32':'ESP32-S3 @ 240 MHz');
+  document.getElementById('mouthHardwareTag').textContent=amoled?'466 · AMOLED':'';
+  scroll=0;updateRubricNote();drawMatrix();
+}
 document.getElementById('sSurface').addEventListener('change',function(){setSurfaceProfile(this.value);});
+document.getElementById('sMouthDisplay').addEventListener('change',function(){setMouthDisplay(this.value);});
 document.getElementById('sMouthMode').addEventListener('change',function(){
   cancelBeat(false); UI.mouthMode=this.value;
-  document.getElementById('rubricNote').textContent=UI.mouthMode==='mouth'?
-    'Physical Heltec preview · animated character mouth':'Physical Heltec preview · text and icon channel';
+  updateRubricNote();
 });
 document.getElementById('sRendererProfile').addEventListener('change',function(){
   UI.legacy=this.value==='heltec-fast';
@@ -1450,7 +1764,8 @@ function setView(name){
   document.body.dataset.view=name;
   document.getElementById('stage').dataset.view=name;
   var notes={
-    live:UI.surface==='heltec'?'Physical Heltec preview · bright OLED · thin frame':'Future concept preview · logical 32 × 8 matrix',
+    live:(UI.mouthDisplay==='amoled'?'Round AMOLED head':'Built-in Heltec OLED')+' · '+
+      (UI.mouthMode==='mouth'?'animated character mouth':'text and icon channel'),
     blind:'R1 · eye-only blind read · choose the state at right',
     silhouette:'R2 · 1-bit geometry at 32 px wide · utterance blank',
     squint:'R3 · blurred value structure · utterance blank'
@@ -1624,6 +1939,13 @@ window.ExpressionBench={
   setState:setState,
   runBeat:runBeat,
   setView:setView,
+  setMouthDisplay:setMouthDisplay,
+  setMouthAffect:function(name){
+    if(name!=='linked'&&!MOUTH_POSES[name]) throw new Error('unknown mouth affect');
+    stopMouthReel();mouthControl.state=name;mouthAffect.value=name;mouthMotion.state='';
+  },
+  playMouthReel:runMouthReel,
+  stopMouthReel:stopMouthReel,
   applyFrame:function(frame){applyResolvedState({protocol:'emote/1',phase:'hold',weight:1,frame:frame});},
   applyResolvedState:applyResolvedState,
   applyProfile:applyProfile,
@@ -1637,12 +1959,13 @@ window.ExpressionBench={
     return isLeft?value:value*blinkRightScale;
   },
   diagnostics:function(){
-    return {state:current,view:UI.view,surface:UI.surface,renderer:UI.legacy?'heltec-fast':'p2',mouthMode:UI.mouthMode,settled:Object.assign({},transition.settled),
+    return {state:current,view:UI.view,surface:UI.surface,mouthDisplay:UI.mouthDisplay,renderer:UI.legacy?'heltec-fast':'p2',mouthMode:UI.mouthMode,settled:Object.assign({},transition.settled),
       idleSeconds:idleAudit.seconds,staticFrames:idleAudit.staticFrames,
       attentionDecay:attentionDecay(performance.now()),
       shadedPixels:stat.shaded,totalPixels:stat.total,utterance:msg,blinkPreview:blinkPreview,
       motionProfile:{blink:Object.assign({},BLINK_PROFILE),gazeArc:Object.assign({},GAZE_ARC_PROFILE),
         eyeDrift:Object.assign({},EYE_DRIFT_PROFILE),attentionDecay:Object.assign({},ATTENTION_DECAY_PROFILE)},
+      mouth:{state:mouthStateName(),override:mouthControl.state,pose:Object.assign({},mouthMotion)},
       bridge:{status:bridge.status,url:bridge.url},profile:Object.assign({},profileStyle),modifiers:Object.assign({},semanticModifiers)};
   }
 };
@@ -1652,11 +1975,18 @@ if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').ma
 }
 
 setSurfaceProfile('heltec');
+setMouthDisplay('amoled');
 applyProfile(profileStyle);
 setState('neutral');
 var queryParams=new URLSearchParams(location.search);
 var stateParam=queryParams.get('state');
 if(stateParam && STATES[stateParam]) setState(stateParam);
+var mouthDisplayParam=queryParams.get('mouthDisplay');
+if(mouthDisplayParam==='oled'||mouthDisplayParam==='amoled') setMouthDisplay(mouthDisplayParam);
+var mouthAffectParam=queryParams.get('mouthAffect');
+if(mouthAffectParam&&MOUTH_POSES[mouthAffectParam]){
+  mouthControl.state=mouthAffectParam;mouthAffect.value=mouthAffectParam;mouthMotion.state='';
+}
 var mouthParam=queryParams.get('mouth');
 if(mouthParam==='mouth'||mouthParam==='utterance'){
   UI.mouthMode=mouthParam; document.getElementById('sMouthMode').value=mouthParam;

@@ -15,12 +15,15 @@ from .port_lease import DEFAULT_YIELD_PATH, PortLease, try_acquire_port_lease
 
 HELTEC_USB_VID = 0x10C4
 HELTEC_USB_PID = 0xEA60
+AMOLED_USB_VID = 0x303A
+AMOLED_USB_PID = 0x1001
 DEFAULT_USB_SERIAL: str | None = None
 DEFAULT_BAUDRATE = 115200
 DEFAULT_IDLE_RELEASE_S = 10.0
 DEFAULT_STARTUP_DELAY_S = 0.15
 DEFAULT_FAILURE_THRESHOLD = 3
 DEFAULT_FAILURE_COOLDOWN_S = 5.0
+DEFAULT_AMOLED_YIELD_PATH = DEFAULT_YIELD_PATH.with_name("amoled-port.yield")
 
 
 class DeviceError(RuntimeError):
@@ -152,6 +155,69 @@ def discover_heltec(
     return DeviceIdentity(
         port=port.device,
         description=port.description or "CP210x USB to UART bridge",
+        hardware_id=port.hwid or "",
+        vid=port.vid,
+        pid=port.pid,
+        usb_serial=port.serial_number,
+    )
+
+
+def discover_amoled_mouth(
+    requested_port: str | None = None,
+    *,
+    expected_usb_serial: str | None = DEFAULT_USB_SERIAL,
+    enumerator: Callable[[], Iterable[PortInfo]] | None = None,
+) -> DeviceIdentity:
+    """Find exactly one Waveshare ESP32-S3 USB endpoint and fail closed."""
+
+    ports = list((enumerator or _system_ports)())
+    requested = None if requested_port in {None, "", "auto"} else requested_port
+    if requested is not None:
+        candidates = [
+            port for port in ports if port.device.casefold() == requested.casefold()
+        ]
+        if not candidates:
+            raise DeviceError(
+                f"requested AMOLED serial port {requested!r} is not present",
+                code="device_absent",
+            )
+    else:
+        candidates = [
+            port
+            for port in ports
+            if port.vid == AMOLED_USB_VID and port.pid == AMOLED_USB_PID
+        ]
+
+    approved = [
+        port
+        for port in candidates
+        if port.vid == AMOLED_USB_VID
+        and port.pid == AMOLED_USB_PID
+        and (expected_usb_serial is None or port.serial_number == expected_usb_serial)
+    ]
+    if not approved:
+        requested_label = requested or "auto"
+        raise DeviceError(
+            f"no approved YouAndEye AMOLED controller for {requested_label!r}; "
+            f"expected VID:PID {AMOLED_USB_VID:04X}:{AMOLED_USB_PID:04X}"
+            + (
+                f" and USB serial {expected_usb_serial!r}"
+                if expected_usb_serial
+                else ""
+            ),
+            code="device_absent" if requested is None else "wrong_device",
+        )
+    if len(approved) != 1:
+        names = ", ".join(sorted(port.device for port in approved))
+        raise DeviceError(
+            f"multiple approved AMOLED controllers found ({names}); set YOUANDEYE_AMOLED_PORT",
+            code="device_ambiguous",
+        )
+
+    port = approved[0]
+    return DeviceIdentity(
+        port=port.device,
+        description=port.description or "ESP32-S3 USB Serial/JTAG",
         hardware_id=port.hwid or "",
         vid=port.vid,
         pid=port.pid,
@@ -335,6 +401,38 @@ class HeltecDevice:
             ) from exc
         return serial.Serial()
 
+    def _discover_identity(self) -> DeviceIdentity:
+        return discover_heltec(
+            self.requested_port,
+            expected_usb_serial=self.expected_usb_serial,
+            enumerator=self._enumerator,
+        )
+
+    def _validate_status_signature(self, status_line: str) -> None:
+        required_markers = (
+            "renderer=",
+            "pipeline=",
+            "display=",
+            "mouth=",
+            "affect=",
+        )
+        if not all(marker in status_line for marker in required_markers):
+            raise DeviceError(
+                "serial device did not return a YouAndEye runtime STATUS signature",
+                code="wrong_firmware",
+            )
+
+    def _status_query(self) -> tuple[Sequence[str], Sequence[str]]:
+        return ("STATUS", "MOUTH STATUS"), ("STATUS ", "MOUTH ")
+
+    def _parse_status(self, lines: Sequence[str]) -> dict[str, Any]:
+        status_line = next(line for line in lines if line.startswith("STATUS "))
+        mouth_line = next(line for line in lines if line.startswith("MOUTH "))
+        return {
+            "runtime": _parse_fields(status_line),
+            "mouth": _parse_fields(mouth_line),
+        }
+
     def _open_locked(self) -> None:
         self._check_available_locked()
         if self._connection is not None:
@@ -354,11 +452,7 @@ class HeltecDevice:
             # Close the marker/lease TOCTOU window: a yield request written after
             # the first check must win before this process touches the serial port.
             self._check_available_locked()
-            identity = discover_heltec(
-                self.requested_port,
-                expected_usb_serial=self.expected_usb_serial,
-                enumerator=self._enumerator,
-            )
+            identity = self._discover_identity()
             connection = self._make_serial()
             connection.port = identity.port
             connection.baudrate = self.baudrate
@@ -387,18 +481,7 @@ class HeltecDevice:
             status_line = next(
                 (line for line in lines if line.startswith("STATUS ")), ""
             )
-            required_markers = (
-                "renderer=",
-                "pipeline=",
-                "display=",
-                "mouth=",
-                "affect=",
-            )
-            if not all(marker in status_line for marker in required_markers):
-                raise DeviceError(
-                    "serial device did not return a YouandEye runtime STATUS signature",
-                    code="wrong_firmware",
-                )
+            self._validate_status_signature(status_line)
         except Exception:
             try:
                 if connection is not None:
@@ -436,7 +519,7 @@ class HeltecDevice:
         payload = "".join(f"{command}\n" for command in clean).encode("utf-8")
         if len(payload) > 512:
             raise DeviceError(
-                "device command batch exceeds the 512-byte Heltec limit",
+                "device command batch exceeds the 512-byte serial limit",
                 code="invalid_command",
             )
         written = connection.write(payload)
@@ -518,19 +601,17 @@ class HeltecDevice:
                 self._open_locked()
                 assert self._connection is not None and self._identity is not None
                 self._connection.reset_input_buffer()
+                commands, prefixes = self._status_query()
                 lines = self._write_read_locked(
                     self._connection,
-                    ("STATUS", "MOUTH STATUS"),
-                    required_prefixes=("STATUS ", "MOUTH "),
+                    commands,
+                    required_prefixes=prefixes,
                 )
                 self._record_success_locked()
-                status_line = next(line for line in lines if line.startswith("STATUS "))
-                mouth_line = next(line for line in lines if line.startswith("MOUTH "))
                 return {
                     "connected": True,
                     "device": self._identity.as_dict(),
-                    "runtime": _parse_fields(status_line),
-                    "mouth": _parse_fields(mouth_line),
+                    **self._parse_status(lines),
                 }
             except Exception as exc:
                 error = self._normalize_error(exc)
@@ -556,11 +637,7 @@ class HeltecDevice:
                     "device": self._identity.as_dict(),
                 }
         try:
-            identity = discover_heltec(
-                self.requested_port,
-                expected_usb_serial=self.expected_usb_serial,
-                enumerator=self._enumerator,
-            )
+            identity = self._discover_identity()
         except DeviceError as exc:
             return {
                 "connected": False,
@@ -592,7 +669,59 @@ class HeltecDevice:
             self._lease_thread.join(timeout=1.0)
 
 
+class AmoledMouthDevice(HeltecDevice):
+    """Identity- and firmware-gated connection to the round AMOLED mouth."""
+
+    def __init__(
+        self,
+        port: str | None = None,
+        *,
+        expected_usb_serial: str | None = DEFAULT_USB_SERIAL,
+        yield_path: str | os.PathLike[str] | None = DEFAULT_AMOLED_YIELD_PATH,
+        **kwargs: Any,
+    ) -> None:
+        requested = port or os.environ.get("YOUANDEYE_AMOLED_PORT", "auto")
+        super().__init__(
+            requested,
+            expected_usb_serial=expected_usb_serial,
+            yield_path=yield_path,
+            **kwargs,
+        )
+
+    def _discover_identity(self) -> DeviceIdentity:
+        return discover_amoled_mouth(
+            self.requested_port,
+            expected_usb_serial=self.expected_usb_serial,
+            enumerator=self._enumerator,
+        )
+
+    def _validate_status_signature(self, status_line: str) -> None:
+        required_markers = (
+            "product=youandeye-mouth",
+            "display=co5300",
+            "size=466x466",
+            "mode=",
+            "affect=",
+        )
+        if not all(marker in status_line for marker in required_markers):
+            raise DeviceError(
+                "serial device did not return a YouAndEye AMOLED mouth STATUS signature",
+                code="wrong_firmware",
+            )
+
+    def _status_query(self) -> tuple[Sequence[str], Sequence[str]]:
+        return ("STATUS",), ("STATUS ",)
+
+    def _parse_status(self, lines: Sequence[str]) -> dict[str, Any]:
+        status_line = next(line for line in lines if line.startswith("STATUS "))
+        fields = _parse_fields(status_line)
+        return {"runtime": fields, "mouth": fields}
+
+
 __all__ = [
+    "AMOLED_USB_PID",
+    "AMOLED_USB_VID",
+    "DEFAULT_AMOLED_YIELD_PATH",
     "DEFAULT_BAUDRATE",
     "DEFAULT_FAILURE_COOLDOWN_S",
     "DEFAULT_FAILURE_THRESHOLD",
@@ -602,8 +731,10 @@ __all__ = [
     "DEFAULT_YIELD_PATH",
     "HELTEC_USB_PID",
     "HELTEC_USB_VID",
+    "AmoledMouthDevice",
     "DeviceError",
     "DeviceIdentity",
     "HeltecDevice",
+    "discover_amoled_mouth",
     "discover_heltec",
 ]

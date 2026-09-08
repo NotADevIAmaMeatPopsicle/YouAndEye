@@ -1,4 +1,4 @@
-# ruff: noqa: E402, F821
+# ruff: noqa: F821, I001
 """PlatformIO upload hook that cooperatively yields the YouAndEye serial port.
 
 PlatformIO executes this module through SCons, which injects ``Import`` and ``env``
@@ -13,9 +13,23 @@ import sys
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(env["PROJECT_DIR"]).resolve().parent
+PROJECT_DIR = Path(env["PROJECT_DIR"]).resolve()
+PROJECT_ROOT = next(
+    (
+        candidate
+        for candidate in (PROJECT_DIR, *PROJECT_DIR.parents)
+        if (candidate / "host" / "youandeye" / "port_lease.py").exists()
+    ),
+    PROJECT_DIR.parent,
+)
+YIELD_NAME = env.GetProjectOption("custom_youandeye_yield_name", "port.yield")
+YIELD_ENV = (
+    "YOUANDEYE_AMOLED_YIELD_PATH"
+    if YIELD_NAME == "amoled-port.yield"
+    else "YOUANDEYE_YIELD_PATH"
+)
 YIELD_PATH = Path(
-    os.environ.get("YOUANDEYE_YIELD_PATH", PROJECT_ROOT / ".youandeye" / "port.yield")
+    os.environ.get(YIELD_ENV, PROJECT_ROOT / ".youandeye" / YIELD_NAME)
 ).resolve()
 LEASE_MODULE_PATH = PROJECT_ROOT / "host" / "youandeye" / "port_lease.py"
 SPEC = importlib.util.spec_from_file_location("youandeye_port_lease", LEASE_MODULE_PATH)

@@ -11,4 +11,8 @@ ESP32 SPI support. It remains under the upstream BSD license included at
 driver is implemented directly by YouAndEye and does not use Arduino GFX. Unused display, bus, canvas,
 and optional U8g2/CJK font sources are not vendored.
 
+The optional round-mouth PlatformIO environment downloads the same BSD-licensed Arduino GFX project at the
+pinned 1.6.7 release for its CO5300/QSPI and canvas support. That dependency is resolved into PlatformIO's
+ignored build cache and is not vendored into this repository.
+
 Copyright notices in third-party source files remain the property of their respective authors.

@@ -222,6 +222,12 @@ def parse_args() -> argparse.Namespace:
         const="auto",
         help="Also dispatch accepted frames to the verified Heltec; omit the value to auto-discover.",
     )
+    parser.add_argument(
+        "--amoled-port",
+        nargs="?",
+        const="auto",
+        help="Also dispatch mouth intent to a verified YouAndEye AMOLED controller.",
+    )
     return parser.parse_args()
 
 
@@ -230,8 +236,14 @@ def main() -> int:
     face_service = None
     if args.heltec_port is not None:
         source_id = os.environ.get("YOUANDEYE_SOURCE_ID", "agent")
+        mouth_device = None
+        if args.amoled_port is not None:
+            from .device import AmoledMouthDevice
+
+            mouth_device = AmoledMouthDevice(port=args.amoled_port)
         face_service = ExpressionService(
             HeltecDevice(port=args.heltec_port),
+            mouth_device=mouth_device,
             bridge=heltec_bridge(),
             source_id=source_id,
             agent_id=os.environ.get("YOUANDEYE_AGENT_ID", source_id),

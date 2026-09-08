@@ -6,6 +6,7 @@ import time
 import unittest
 
 from host.youandeye.contracts import ContractError
+from host.youandeye.device import DeviceError
 from host.youandeye.face_service import ExpressionService
 from host.youandeye.mcp_server import create_mcp
 
@@ -73,6 +74,54 @@ class ExpressionServiceTests(unittest.TestCase):
         self.assertTrue(receipt["ok"])
         self.assertEqual(["EMOTE UNCERTAIN 0.43", "MOUTH AUTO"], self.device.batches[-1])
         self.assertEqual(0.43, receipt["frame"]["affect"]["intensity"])
+
+    def test_round_mouth_fanout_sleeps_oled_and_preserves_semantics(self) -> None:
+        mouth = FakeDevice()
+        service = ExpressionService(
+            self.device,  # type: ignore[arg-type]
+            mouth_device=mouth,  # type: ignore[arg-type]
+            session_id="dual-device",
+            monotonic_ms=lambda: self.now,
+            schedule_expiry=False,
+            performance_time_scale=0,
+        )
+        try:
+            receipt = service.express(
+                affect="happy", message="NICE!", text_mode="static"
+            )
+            self.assertEqual(
+                ["EMOTE HAPPY 0.70", "MOUTH OFF"], self.device.batches[-1]
+            )
+            self.assertIn("AFFECT HAPPY 0.70", mouth.batches[-1][1])
+            self.assertEqual("TEXT NICE!", mouth.batches[-1][-1])
+            self.assertEqual("dual_controller_amoled", receipt["delivery"]["display_mode"])
+        finally:
+            service.close()
+
+    def test_round_mouth_failure_wakes_legacy_oled_fallback(self) -> None:
+        class FailingMouth(FakeDevice):
+            def send_commands(self, commands: list[str]) -> dict:
+                raise DeviceError("mouth disconnected", code="device_absent")
+
+        mouth = FailingMouth()
+        service = ExpressionService(
+            self.device,  # type: ignore[arg-type]
+            mouth_device=mouth,  # type: ignore[arg-type]
+            session_id="fallback",
+            monotonic_ms=lambda: self.now,
+            schedule_expiry=False,
+            performance_time_scale=0,
+        )
+        try:
+            receipt = service.express(
+                affect="thinking", message="WAIT", text_mode="static"
+            )
+            self.assertEqual(
+                ["EMOTE THINKING 0.70", "TEXT WAIT"], self.device.batches[-1]
+            )
+            self.assertEqual("heltec_oled_fallback", receipt["delivery"]["display_mode"])
+        finally:
+            service.close()
 
     def test_sequence_becomes_one_device_owned_beat(self) -> None:
         self.service.express(affect="success", sequence="celebrate", ttl_ms=2500)
@@ -205,6 +254,14 @@ class ExpressionServiceTests(unittest.TestCase):
 
         resources = asyncio.run(server.list_resources())
         self.assertIn("youandeye://profile", {str(resource.uri) for resource in resources})
+
+    def test_capabilities_describe_the_semantic_mouth_surface(self) -> None:
+        capabilities = self.service.capabilities()["mouth_surface"]
+        self.assertEqual("semantic-affect", capabilities["control"])
+        self.assertEqual("surface-owned", capabilities["animation"])
+        self.assertEqual(21, len(capabilities["affects"]))
+        self.assertIn("expressive", capabilities["styles"])
+        self.assertNotIn("pixels", capabilities)
 
 
 if __name__ == "__main__":

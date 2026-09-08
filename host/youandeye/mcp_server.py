@@ -9,7 +9,7 @@ from mcp.types import ToolAnnotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from .contracts import ContractError
-from .device import DEFAULT_USB_SERIAL, DeviceError, HeltecDevice
+from .device import DEFAULT_USB_SERIAL, AmoledMouthDevice, DeviceError, HeltecDevice
 from .face_service import ExpressionService
 from .profile_store import ProfileError, ProfileStore, default_profile_db_path
 
@@ -92,12 +92,20 @@ def default_service() -> ExpressionService:
     usb_serial = os.environ.get("YOUANDEYE_USB_SERIAL", DEFAULT_USB_SERIAL)
     source_id = os.environ.get("YOUANDEYE_SOURCE_ID", "agent")
     agent_id = os.environ.get("YOUANDEYE_AGENT_ID", source_id)
+    amoled_mode = os.environ.get("YOUANDEYE_AMOLED_MODE", "auto").casefold()
+    mouth_device = None
+    if amoled_mode not in {"off", "disabled", "0", "false"}:
+        mouth_device = AmoledMouthDevice(
+            port=os.environ.get("YOUANDEYE_AMOLED_PORT", "auto"),
+            expected_usb_serial=os.environ.get("YOUANDEYE_AMOLED_USB_SERIAL") or None,
+        )
     return ExpressionService(
         HeltecDevice(
             port=os.environ.get("YOUANDEYE_PORT", "auto"),
             baudrate=int(os.environ.get("YOUANDEYE_BAUDRATE", "115200")),
             expected_usb_serial=usb_serial or None,
         ),
+        mouth_device=mouth_device,
         source_id=source_id,
         agent_id=agent_id,
         profile_store=ProfileStore(default_profile_db_path()),

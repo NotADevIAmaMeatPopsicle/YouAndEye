@@ -4,12 +4,13 @@
 
 ### A tiny DIY face for an AI with something to say
 
-Two little IPS eyes, one pocket-size OLED mouth, and a classic ESP32 doing its best impression of being alive.
+Two little IPS eyes, a pocket-size OLED or lush round AMOLED mouth, and a pair of ESP32s doing their best
+impression of being alive.
 
-![YouAndEye Expression Bench showing the physical Heltec face preview and expression controls](docs/assets/screenshots/expression-bench-overview.png)
+![YouAndEye Expression Bench showing the dual-controller face with its round AMOLED mouth](docs/assets/screenshots/expression-bench-amoled.png)
 
 ![Hardware tested](https://img.shields.io/badge/hardware-tested-2ea44f)
-![Tests](https://img.shields.io/badge/tests-80%2F80-2ea44f)
+![Tests](https://img.shields.io/badge/tests-94%2F94-2ea44f)
 ![ESP32](https://img.shields.io/badge/ESP32-PlatformIO-00979d)
 ![MCP](https://img.shields.io/badge/interface-MCP-7c3aed)
 ![License](https://img.shields.io/badge/license-MIT-f2c744)
@@ -30,8 +31,9 @@ looking around, and blinking locally. Disconnect the agent and it still has a pu
 
 ## Meet the expressions
 
-The browser bench renders the same semantic poses used by the firmware. These captures use the physical
-Heltec profile at its real 160×160 eye resolution and 128×64 OLED mouth resolution.
+The browser bench renders the same semantic poses used by the firmware. Its mouth-hardware switch compares
+the original 128×64 OLED with the optional 466×466 round AMOLED head before either device is flashed. The
+AMOLED mouth studio can isolate every affect and tune bounded intensity, warmth, confidence, and urgency.
 
 | Thinking | Happy |
 |:---:|:---:|
@@ -45,9 +47,11 @@ Heltec profile at its real 160×160 eye resolution and 128×64 OLED mouth resolu
 
 | Part | Job |
 |---|---|
-| Classic Heltec WiFi Kit 32 | Runs the renderer and contributes its built-in 128×64 OLED mouth |
+| Classic Heltec WiFi Kit 32 | Runs both eye panels; its built-in OLED is the compact mouth and automatic fallback |
 | Waveshare 0.71-inch DualEye LCD | Two 160×160 GC9D01 round IPS eyes on one compact board |
-| `firmware/` | Twenty-one expressions, autonomous motion, mouth shapes, text, and synchronized beats |
+| Optional Waveshare ESP32-S3-Touch-AMOLED-1.75 | Separate 466×466 CO5300 mouth with 21 authored expressions, captions, icons, and local choreography |
+| `firmware/` | Twenty-one eye expressions, autonomous motion, synchronized beats, and the OLED fallback |
+| `firmware/amoled-mouth/` | USB-only semantic renderer for the optional round mouth |
 | Expression Bench | Exact-size browser playground for tuning before flashing hardware |
 | `emote/1` | Transport-independent semantic expression contract |
 | Local MCP server | Semantic expression, local identities, and self-timed performances for Codex or another MCP client |
@@ -69,13 +73,13 @@ The complete [DIY build guide](docs/DIY_BUILD_GUIDE.md) includes:
 The short version is delightfully small:
 
 ```text
-Waveshare DualEye ── SPI ──► classic Heltec WiFi Kit 32
-       two eyes                    brain + OLED mouth
-                                      │
-                                   USB/MCP
-                                      │
-                                  your agent
+                         ┌─ USB ─► classic Heltec ── SPI ─► two eyes
+your agent ── local MCP ─┤
+                         └─ USB ─► ESP32-S3 ── QSPI ─► round AMOLED mouth
 ```
+
+The second controller is optional. If it is absent or fails its firmware-signature check, YouAndEye wakes
+the Heltec OLED and continues as the original one-board face.
 
 > [!IMPORTANT]
 > Heltec's current WiFi Kit 32 is an ESP32-S3 revision. This working build uses the older classic ESP32
@@ -98,6 +102,7 @@ semantic motion model used by the firmware.
 uv sync --extra serial
 uv run --extra serial python -m unittest discover -s tests -p 'test_*.py' -v
 python -m platformio run -d firmware -e heltec_wifi_kit_32
+python -m platformio run -d firmware/amoled-mouth -e waveshare_amoled_mouth
 ```
 
 The firmware pins Espressif32 6.12.0 and carries a small, licensed Arduino GFX 1.6.4 subset containing
@@ -150,7 +155,8 @@ the tools available to a cloud agent without turning the microcontroller into a 
 |---|---|
 | [`docs/DIY_BUILD_GUIDE.md`](docs/DIY_BUILD_GUIDE.md) | Parts, wiring, flashing, first boot, enclosure, and troubleshooting |
 | [`simulator/`](simulator/) | Interactive expression and motion simulator |
-| [`firmware/`](firmware/) | Accepted classic-ESP32 firmware |
+| [`firmware/`](firmware/) | Accepted classic-ESP32 eye firmware and built-in OLED fallback |
+| [`firmware/amoled-mouth/`](firmware/amoled-mouth/) | Optional Waveshare round-AMOLED mouth firmware |
 | [`host/youandeye/`](host/youandeye/) | MCP, HTTP, arbitration, validation, and verified serial bridge |
 | [`schema/`](schema/) | Canonical `emote/1` JSON schemas |
 | [`docs/MCP.md`](docs/MCP.md) | Agent interface and client setup |
@@ -162,7 +168,10 @@ who just want a charming desk creature should begin with the [DIY guide](docs/DI
 ## Known-good release
 
 The current release provides twenty-one affects, intensity-scaled geometry, five coordinated
-character beats, an animated mouth, smooth text scrolling, native icons, and synchronized binocular blinking.
+character beats, a full cartoony mouth actor, smooth text scrolling, native icons, and synchronized binocular blinking.
+The round mouth distinguishes attention, thought, confidence, delight, concern, uncertainty, embarrassment,
+playfulness, love, and error through silhouette before adding teeth, tongue, thought dots, blush, sweat, hearts,
+sparkles, or alert marks. Its anticipation, moving holds, and six local speech visemes run without host keyframes.
 Small device-owned cues add a thinking hesitation, listening attention lead, success relief, uncertainty gaze
 aversion, restrained per-eye variation, and a slow neutral attention fade that resets with new intent. Its
 paired host stack adds the local MCP/HTTP control plane, approval-gated per-agent identities, and self-timed

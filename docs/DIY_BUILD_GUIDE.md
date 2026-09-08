@@ -1,8 +1,8 @@
 # Build your own YouAndEye
 
-YouAndEye is a small, expressive desk face made from one ESP32 board, a pair of tiny round LCDs, and the
-OLED that is already attached to the controller. The eyes blink and wander on their own; an AI agent only
-sends high-level intent such as “thinking,” “happy,” or “say hello.”
+YouAndEye is a small, expressive desk face made from a classic ESP32, a pair of tiny round LCDs, and either
+the OLED already attached to the controller or an optional high-resolution round AMOLED mouth. The eyes blink
+and wander on their own; an AI agent only sends high-level intent such as “thinking,” “happy,” or “say hello.”
 
 This guide recreates the **tested classic-ESP32 build**. Take your time, keep the USB cable unplugged while
 wiring, and treat the first blink as a tiny victory. 👀
@@ -39,6 +39,7 @@ References:
 | 1 set | Jumper wire, solder, or a small protoboard | Use whichever gives every connection strain relief |
 | 1 | Non-conductive enclosure | A printed shell, foamboard, polymer clay, or a gloriously temporary blob all work |
 | optional | Heat-shrink, foam tape, hot glue | For insulation and mechanical support after testing |
+| optional | Waveshare ESP32-S3-Touch-AMOLED-1.75 | A separate 466×466 CO5300 round mouth with its own USB data cable |
 
 Useful tools are a fine-tip soldering iron, flush cutters, tweezers, and a multimeter with continuity mode.
 The eye module accepts 3.3 V or 5 V power according to Waveshare; the proven build uses **3.3 V**. ESP32 GPIO
@@ -105,6 +106,16 @@ python -m platformio run -d firmware -e heltec_wifi_kit_32
 The PlatformIO project pins Espressif32 6.12.0 and includes the small Arduino GFX 1.6.4 subset used by
 the GC9D01 eyes, so it does not guess a different display stack on a fresh machine.
 
+For the optional round mouth, build its independent image too:
+
+```powershell
+python -m platformio run -d firmware/amoled-mouth -e waveshare_amoled_mouth
+```
+
+The AMOLED project uses the ESP32-S3's 8 MB PSRAM and native USB but does not start Wi-Fi or initialize the
+board's touch, microphone, speaker, or sensors. Its board and display configuration follows the
+[official Waveshare ESP32-S3-Touch-AMOLED-1.75 documentation](https://docs.waveshare.com/ESP32-S3-Touch-AMOLED-1.75).
+
 ## Identify, then flash
 
 Never copy a COM port from a screenshot or this guide. List the ports on the computer in front of you:
@@ -123,6 +134,21 @@ python -m platformio run -d firmware -e heltec_wifi_kit_32 `
 
 On Linux or macOS the port will look more like `/dev/ttyUSB0` or `/dev/cu.SLAB_USBtoUART`. If automatic
 reset fails, hold the board's `PRG`/`BOOT` button, tap `RST`, release `PRG`, and retry.
+
+### Add the round mouth
+
+Connect the AMOLED board with its own data-capable USB cable. It normally enumerates as Espressif native USB
+with VID:PID `303A:1001`; confirm that identity and that it is the only matching board before uploading:
+
+```powershell
+python -m platformio run -d firmware/amoled-mouth -e waveshare_amoled_mouth `
+  --target upload --upload-port <AMOLED_PORT>
+```
+
+No signal wires run between the two controllers. The host synchronizes them semantically over their two USB
+connections. On first boot the AMOLED should show a calm blue mouth. A serial `STATUS` request must include
+`product=youandeye-mouth display=co5300 size=466x466`. The host will not drive a native-USB board that does
+not return that signature.
 
 ## First hello
 
@@ -153,6 +179,9 @@ Expected behavior:
 - `MOUTH AUTO` restores the affect-driven mouth.
 - `BEAT SUCCESS` performs a synchronized eye-and-mouth character beat.
 
+With the optional round mouth connected, `face_status` reports `dual_controller_amoled`, the same calls drive
+the new panel, and the small OLED turns off. Unplugging or disabling the AMOLED makes the OLED the mouth again.
+
 If a screen is physically upside down, use `ORIENT <left 0..3> <right 0..3>` to diagnose the mounting before
 changing the defaults. The accepted side-by-side assembly uses rotations `1,3`.
 
@@ -161,16 +190,19 @@ changing the defaults. The accepted side-by-side assembly uses rotations `1,3`.
 Close the serial monitor first; only one process can own the port. Then run the real MCP smoke test:
 
 ```powershell
-uv run --extra serial python tools/smoke_mcp.py --port auto --exercise
+uv run --extra serial python tools/smoke_mcp.py --port auto --amoled-port auto --exercise
 ```
 
 That discovers the approved board, reads live telemetry, shows one celebration, and explicitly returns the
-face to neutral. Configure your MCP client with the command in [MCP.md](MCP.md). The four agent tools are:
+face to neutral. Configure your MCP client with the command in [MCP.md](MCP.md). The original four tools are:
 
 - `express` — show a temporary affect, message, or coordinated beat
 - `face_status` — inspect the face and live render health
 - `face_capabilities` — discover what this build supports
 - `neutral` — clear host intent and return to the autonomous resting face
+
+Two compatible additions, `configure_profile` and `perform`, add approval-gated identity and complete
+self-timed scenes without changing those original calls.
 
 Read [MCP.md](MCP.md) for the complete interface. The design is local-first and works fully offline. A trusted
 desktop agent may proxy these tools to a cloud session, but the serial device is never exposed as a public
@@ -183,6 +215,9 @@ Electronics are only half the character. A few enclosure tips make a surprising 
 - Mount the round panels level and at the same depth. Small alignment errors read as a permanent expression.
 - Leave a soft dark rim around each LCD to hide its square corners and increase apparent contrast.
 - Place the Heltec OLED low enough to read as a mouth, but leave access to USB, `PRG`, and `RST`.
+- If you use the round mouth, leave a dark circular rim around it. The black AMOLED background disappears into
+  that bezel, so the glowing curve reads like a floating expression instead of a screen.
+- Leave access to both USB connectors. They are independent controllers and both need data-capable cables.
 - Add strain relief before closing the shell. The tiny SH1.0 connector should not carry cable tension.
 - Keep metal, wet clay, and conductive paint away from powered electronics.
 - Start with cardboard, foam, or reusable putty. The best final enclosure usually follows one wonderfully
@@ -198,6 +233,8 @@ Electronics are only half the character. A few enclosure tips make a surprising 
 | Only one eye works | Check that `CS1/CS2`, `RST1/RST2`, and `BL1/BL2` are not swapped or shorted |
 | Eye is upside down | Use `ORIENT`; verify the physical module orientation before editing firmware |
 | OLED is blank | Keep GPIO 4/15/16 free; request `MOUTH STATUS`, then `MOUTH AUTO` |
+| OLED is blank while AMOLED works | Expected: the host puts the fallback OLED into hardware sleep |
+| AMOLED is blank | Confirm its native-USB identity, request `STATUS`, and require the `youandeye-mouth` signature |
 | Face shakes or disappears | Confirm the current repository firmware, 40 MHz SPI baseline, and stable USB power |
 | MCP cannot connect | Close serial monitors; confirm exactly one approved CP210x device; call `face_status` |
 

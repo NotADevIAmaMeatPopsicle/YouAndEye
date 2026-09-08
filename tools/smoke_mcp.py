@@ -31,9 +31,10 @@ def _structured(result: object) -> dict:
     return value
 
 
-async def run(port: str, exercise: bool) -> dict:
+async def run(port: str, exercise: bool, amoled_port: str = "auto") -> dict:
     environment = dict(os.environ)
     environment["YOUANDEYE_PORT"] = port
+    environment["YOUANDEYE_AMOLED_PORT"] = amoled_port
     parameters = StdioServerParameters(
         command="uv",
         args=["run", "--extra", "serial", "youandeye-mcp"],
@@ -99,8 +100,13 @@ def main() -> int:
         action="store_true",
         help="Show a success beat, wait for completion, and restore neutral.",
     )
+    parser.add_argument(
+        "--amoled-port",
+        default="auto",
+        help="Verified round-mouth port or auto discovery.",
+    )
     args = parser.parse_args()
-    result = asyncio.run(run(args.port, args.exercise))
+    result = asyncio.run(run(args.port, args.exercise, args.amoled_port))
     print(json.dumps(result, indent=2))
     return 0
 

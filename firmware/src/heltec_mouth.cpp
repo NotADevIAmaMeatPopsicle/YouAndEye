@@ -119,6 +119,8 @@ bool HeltecMouthDisplay::begin()
     return false;
   }
 
+  powered = true;
+
   showMouth(HeltecMouthShape::NEUTRAL);
   return initialized;
 }
@@ -499,7 +501,7 @@ void HeltecMouthDisplay::renderScrollFrame(bool fullRefresh)
 
 void HeltecMouthDisplay::tick(uint32_t nowMs)
 {
-  if (!initialized)
+  if (!initialized || !powered)
   {
     return;
   }
@@ -543,5 +545,39 @@ void HeltecMouthDisplay::blank()
   currentText[0] = '\0';
   clearPixels();
   flush();
+  releaseLock();
+}
+
+void HeltecMouthDisplay::sleep()
+{
+  if (!initialized || !powered || !takeLock())
+  {
+    return;
+  }
+  setScroll(false);
+  completedScrollCycle = false;
+  mouthActive = false;
+  currentText[0] = '\0';
+  clearPixels();
+  flush();
+  static const uint8_t displayOff[] = {0xae};
+  if (writeCommands(displayOff, sizeof(displayOff)))
+  {
+    powered = false;
+  }
+  releaseLock();
+}
+
+void HeltecMouthDisplay::wake()
+{
+  if (!initialized || powered || !takeLock())
+  {
+    return;
+  }
+  static const uint8_t displayOn[] = {0xaf};
+  if (writeCommands(displayOn, sizeof(displayOn)))
+  {
+    powered = true;
+  }
   releaseLock();
 }

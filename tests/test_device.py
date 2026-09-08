@@ -8,7 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import patch
 
-from host.youandeye.device import DeviceError, HeltecDevice, discover_heltec
+from host.youandeye.device import (
+    AmoledMouthDevice,
+    DeviceError,
+    HeltecDevice,
+    discover_amoled_mouth,
+    discover_heltec,
+)
 from host.youandeye.port_lease import try_acquire_port_lease
 
 
@@ -93,6 +99,17 @@ class DeviceDiscoveryTests(unittest.TestCase):
                 expected_usb_serial="EXPECTED",
                 enumerator=lambda: [FakePort("COM77")],
             )
+
+    def test_amoled_discovery_accepts_one_exact_native_usb_device(self) -> None:
+        port = FakePort(
+            "COM88",
+            description="USB JTAG/serial debug unit",
+            vid=0x303A,
+            pid=0x1001,
+        )
+        identity = discover_amoled_mouth(enumerator=lambda: [port])
+        self.assertEqual("COM88", identity.port)
+        self.assertEqual(0x303A, identity.vid)
 
 
 class HeltecDeviceTests(unittest.TestCase):
@@ -254,6 +271,47 @@ class HeltecDeviceTests(unittest.TestCase):
                 device.send_commands(("EMOTE HAPPY",))
             self.assertEqual("retry_cooldown", raised.exception.code)
             self.assertEqual(2, len(serials))
+        finally:
+            device.close()
+
+
+class AmoledMouthDeviceTests(unittest.TestCase):
+    def test_handshake_requires_amoled_firmware_signature(self) -> None:
+        port = FakePort(
+            "COM88",
+            description="USB JTAG/serial debug unit",
+            vid=0x303A,
+            pid=0x1001,
+        )
+
+        class AmoledSerial(FakeSerial):
+            def write(self, payload: bytes) -> int:
+                for command in payload.decode().splitlines():
+                    self.written.append(command)
+                    if command == "STATUS":
+                        self._incoming.extend(
+                            b"STATUS product=youandeye-mouth display=co5300 size=466x466 "
+                            b"mode=auto affect=neutral scrolling=0 scrollComplete=1\n"
+                        )
+                    else:
+                        self._incoming.extend(f"OK {command}\n".encode())
+                return len(payload)
+
+        serial = AmoledSerial()
+        device = AmoledMouthDevice(
+            port="auto",
+            enumerator=lambda: [port],
+            serial_factory=lambda: serial,
+            startup_delay_s=0,
+            response_timeout_s=0.05,
+            yield_path=None,
+        )
+        try:
+            receipt = device.send_commands(("AFFECT HAPPY 0.80 0.70 0.80 0.20",))
+            self.assertTrue(receipt["connected"])
+            status = device.status()
+            self.assertEqual("co5300", status["runtime"]["display"])
+            self.assertEqual(1, status["mouth"]["scrollComplete"])
         finally:
             device.close()
 

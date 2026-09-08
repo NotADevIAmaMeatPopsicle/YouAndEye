@@ -88,6 +88,19 @@ class HeltecTransportTests(unittest.TestCase):
             commands_for_frame(frame),
         )
 
+    def test_external_mouth_sleeps_oled_but_keeps_eye_choreography(self) -> None:
+        frame = deepcopy(self.frame)
+        frame["sequence"] = "celebrate"
+        frame["utterance"] = {"mode": "none", "sound": "celebrate"}
+        self.assertEqual(
+            [
+                "CONTEXT ATTENTIVE AWAY 0.50 0.50 0.30",
+                "MOUTH OFF",
+                "BEAT SUCCESS",
+            ],
+            commands_for_frame(frame, external_mouth=True),
+        )
+
     def test_explicit_utterance_preempts_sequence_choreography(self) -> None:
         frame = deepcopy(self.frame)
         frame["sequence"] = "attention"

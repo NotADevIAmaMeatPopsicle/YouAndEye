@@ -9,12 +9,19 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from .amoled_transport import commands_for_amoled
 from .bridge import SurfaceBridge
 from .contracts import ContractError, validate_message
-from .device import DeviceError, HeltecDevice
+from .device import AmoledMouthDevice, DeviceError, HeltecDevice
 from .downmix import AFFECT_CENTERS
 from .heltec_transport import commands_for_frame
-from .performance import PACE_MS, beat_duration_ms, beat_expression, build_performance, caption_mode
+from .performance import (
+    PACE_MS,
+    beat_duration_ms,
+    beat_expression,
+    build_performance,
+    caption_mode,
+)
 from .profile_store import (
     DEFAULT_PROFILE_CHOICES,
     IRIS_PALETTES,
@@ -58,6 +65,7 @@ class ExpressionService:
         self,
         device: HeltecDevice,
         *,
+        mouth_device: AmoledMouthDevice | None = None,
         bridge: SurfaceBridge | None = None,
         source_id: str = "agent",
         agent_id: str | None = None,
@@ -68,6 +76,7 @@ class ExpressionService:
         performance_time_scale: float = 1.0,
     ) -> None:
         self.device = device
+        self.mouth_device = mouth_device
         self.bridge = bridge or heltec_bridge()
         self.source_id = validate_agent_id(source_id)
         self.agent_id = validate_agent_id(agent_id or source_id)
@@ -106,6 +115,17 @@ class ExpressionService:
                 daemon=True,
             )
             self._expiry_thread.start()
+
+    def _external_mouth_available(self) -> bool:
+        if self.mouth_device is None:
+            return False
+        try:
+            description = self.mouth_device.describe()
+        except AttributeError:
+            return True
+        except DeviceError:
+            return False
+        return bool(description.get("connected") or description.get("available"))
 
     def _next_seq(self) -> int:
         with self._lock:
@@ -403,12 +423,15 @@ class ExpressionService:
             if cancel.wait(min(0.1, maximum_s - elapsed)):
                 return True
             try:
-                mouth = self.device.status().get("mouth", {})
+                if self._external_mouth_available() and self.mouth_device is not None:
+                    mouth = self.mouth_device.status().get("mouth", {})
+                else:
+                    mouth = self.device.status().get("mouth", {})
             except DeviceError:
                 continue
             if "scrollComplete" in mouth:
                 feedback_supported = True
-            complete = mouth.get("scrollComplete") in {1, "1", True, "true"}
+            complete = mouth.get("scrollComplete") in {1, "1", "true"}
             if feedback_supported and complete and time.monotonic() - started >= minimum_s:
                 return False
 
@@ -432,9 +455,25 @@ class ExpressionService:
                 profile_commands, profile_key = self._profile_commands(
                     frame, state["phase"], profile_override
                 )
-                commands = profile_commands + commands_for_frame(frame)
+                external_mouth = self._external_mouth_available()
+                commands = profile_commands + commands_for_frame(
+                    frame, external_mouth=external_mouth
+                )
 
             receipt = self.device.send_commands(commands)
+            mouth_receipt: dict[str, Any] | None = None
+            mouth_error: dict[str, Any] | None = None
+            if external_mouth and self.mouth_device is not None:
+                try:
+                    mouth_receipt = self.mouth_device.send_commands(
+                        commands_for_amoled(frame)
+                    )
+                except DeviceError as exc:
+                    mouth_error = exc.as_dict()
+                    # The round panel is an optional enhancement. If it vanishes,
+                    # wake the built-in OLED and replay the complete semantic frame.
+                    fallback_commands = profile_commands + commands_for_frame(frame)
+                    receipt = self.device.send_commands(fallback_commands)
 
             with self._lock:
                 self._last_dispatched = fingerprint
@@ -442,7 +481,17 @@ class ExpressionService:
                 self._applied_connection_generation = getattr(
                     self.device, "connection_generation", None
                 )
-            return {"sent": True, **receipt}
+            delivery = {"sent": True, **receipt}
+            if mouth_receipt is not None:
+                delivery["display_mode"] = "dual_controller_amoled"
+                delivery["devices"] = {"eyes": receipt, "mouth": mouth_receipt}
+                delivery["mouth"] = mouth_receipt
+            elif mouth_error is not None:
+                delivery["display_mode"] = "heltec_oled_fallback"
+                delivery["mouth_error"] = mouth_error
+            else:
+                delivery["display_mode"] = "heltec_oled"
+            return delivery
 
     def _schedule(self, now_ms: int) -> None:
         if not self._schedule_expiry:
@@ -835,6 +884,28 @@ class ExpressionService:
             now_ms = self._monotonic_ms()
             state = self.bridge.state(now_ms)
         device_status = self.device.status()
+        mouth_status: dict[str, Any] | None = None
+        mouth_error: dict[str, Any] | None = None
+        if self._external_mouth_available() and self.mouth_device is not None:
+            try:
+                mouth_status = self.mouth_device.status()
+            except DeviceError as exc:
+                mouth_error = exc.as_dict()
+        combined = dict(device_status)
+        combined["display_mode"] = (
+            "dual_controller_amoled" if mouth_status is not None else "heltec_oled"
+        )
+        combined["devices"] = {
+            "eyes": device_status,
+            "mouth": mouth_status
+            or {
+                "connected": False,
+                "available": False,
+                **({"error": mouth_error} if mouth_error else {}),
+            },
+        }
+        if mouth_status is not None:
+            combined["mouth"] = mouth_status.get("mouth", {})
         return {
             "ok": True,
             "surface_id": self.bridge.capabilities["surface"]["id"],
@@ -844,17 +915,23 @@ class ExpressionService:
             "expires_at_ms": state["expires_at_ms"],
             "profile": self.profile_status(),
             "performance": self.performance_status(),
-            **device_status,
+            **combined,
         }
 
     def capabilities(self) -> dict[str, Any]:
         return {
             "capabilities": deepcopy(self.bridge.capabilities),
             "connection": self.device.describe(),
+            "connections": {
+                "eyes": self.device.describe(),
+                "mouth": self.mouth_device.describe()
+                if self.mouth_device is not None
+                else {"connected": False, "available": False, "disabled": True},
+            },
             "interface": {
                 "agent": "mcp-stdio",
                 "contract": "emote/1",
-                "hardware": ["serial"],
+                "hardware": ["serial", "optional-round-amoled"],
                 "profiles": "youandeye.profile/1",
                 "performances": "youandeye.performance/1",
             },
@@ -866,6 +943,15 @@ class ExpressionService:
                 "return_policies": ["profile_neutral", "safe_neutral"],
                 "cancellation": ["perform(action='cancel')", "neutral()", "express(...)"],
             },
+            "mouth_surface": {
+                "control": "semantic-affect",
+                "affects": list(AFFECTS),
+                "styles": ["minimal", "expressive", "text_friendly"],
+                "modifiers": ["intensity", "warmth", "confidence", "urgency"],
+                "content": ["auto", "static", "scroll", "icon", "speech"],
+                "animation": "surface-owned",
+                "completion_feedback": ["scrollComplete"],
+            },
         }
 
     def close(self) -> None:
@@ -876,6 +962,8 @@ class ExpressionService:
             self._expiry_deadline_ms = None
             self._expiry_condition.notify_all()
         self.device.close()
+        if self.mouth_device is not None:
+            self.mouth_device.close()
         if expiry_thread is not None and expiry_thread is not threading.current_thread():
             expiry_thread.join(timeout=1.0)
 
