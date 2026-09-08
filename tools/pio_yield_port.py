@@ -1,4 +1,9 @@
-"""PlatformIO upload hook that cooperatively yields the YouAndEye serial port."""
+# ruff: noqa: E402, F821
+"""PlatformIO upload hook that cooperatively yields the YouAndEye serial port.
+
+PlatformIO executes this module through SCons, which injects ``Import`` and ``env``
+before normal Python imports run.
+"""
 
 Import("env")
 
