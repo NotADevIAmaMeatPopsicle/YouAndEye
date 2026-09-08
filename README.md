@@ -9,7 +9,7 @@ Two little IPS eyes, one pocket-size OLED mouth, and a classic ESP32 doing its b
 ![YouAndEye Expression Bench showing the physical Heltec face preview and expression controls](docs/assets/screenshots/expression-bench-overview.png)
 
 ![Hardware tested](https://img.shields.io/badge/hardware-tested-2ea44f)
-![Tests](https://img.shields.io/badge/tests-61%2F61-2ea44f)
+![Tests](https://img.shields.io/badge/tests-65%2F65-2ea44f)
 ![ESP32](https://img.shields.io/badge/ESP32-PlatformIO-00979d)
 ![MCP](https://img.shields.io/badge/interface-MCP-7c3aed)
 ![License](https://img.shields.io/badge/license-MIT-f2c744)
@@ -47,7 +47,7 @@ Heltec profile at its real 160×160 eye resolution and 128×64 OLED mouth resolu
 |---|---|
 | Classic Heltec WiFi Kit 32 | Runs the renderer and contributes its built-in 128×64 OLED mouth |
 | Waveshare 0.71-inch DualEye LCD | Two 160×160 GC9D01 round IPS eyes on one compact board |
-| `firmware/` | Fifteen expressions, autonomous motion, mouth shapes, text, and synchronized beats |
+| `firmware/` | Twenty-one expressions, autonomous motion, mouth shapes, text, and synchronized beats |
 | Expression Bench | Exact-size browser playground for tuning before flashing hardware |
 | `emote/1` | Transport-independent semantic expression contract |
 | Local MCP server | Four safe tools that let Codex or another MCP client wear the face |
@@ -153,9 +153,12 @@ who just want a charming desk creature should begin with the [DIY guide](docs/DI
 
 ## Known-good release
 
-The accepted Heltec behavior provides fifteen affects, five coordinated character beats, an animated mouth,
-smooth text scrolling, native icons, and synchronized binocular blinking. Its paired host stack adds the
-local MCP/HTTP control plane. Current build sizes, tests, and limitations are recorded in [`STATUS.md`](STATUS.md).
+The current software candidate provides twenty-one affects, intensity-scaled geometry, five coordinated
+character beats, an animated mouth, smooth text scrolling, native icons, and synchronized binocular blinking.
+Small device-owned cues add a thinking hesitation, listening attention lead, success relief, uncertainty gaze
+aversion, restrained per-eye variation, and a slow neutral attention fade that resets with new intent. Its
+paired host stack adds the local MCP/HTTP control plane. Current build sizes, tests, physical-validation status,
+and limitations are recorded in [`STATUS.md`](STATUS.md).
 
 ## Make it yours
 

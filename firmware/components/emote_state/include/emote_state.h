@@ -30,6 +30,12 @@ typedef enum {
     EMOTE_SUCCESS,
     EMOTE_PLAYFUL,
     EMOTE_ENCOURAGING,
+    EMOTE_CURIOUS,
+    EMOTE_UNCERTAIN,
+    EMOTE_CONCERNED,
+    EMOTE_DELIGHTED,
+    EMOTE_EMBARRASSED,
+    EMOTE_REASSURING,
     EMOTE_AFFECT_COUNT
 } emote_affect_t;
 
@@ -107,6 +113,7 @@ bool emote_decay_from_name(const char *name, emote_decay_t *out);
 bool emote_priority_from_name(const char *name, emote_priority_t *out);
 const char *emote_affect_name(emote_affect_t affect);
 emote_pose_t emote_pose_for_affect(emote_affect_t affect);
+emote_pose_t emote_pose_for_affect_intensity(emote_affect_t affect, float intensity);
 
 #ifdef __cplusplus
 }

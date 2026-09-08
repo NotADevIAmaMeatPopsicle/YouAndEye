@@ -28,6 +28,8 @@ def embedded_blink_profile(source: str) -> dict[str, float]:
         "holdMs": "BLINK_HOLD_MS",
         "openMs": "BLINK_OPEN_MS",
         "rightLagMs": "BLINK_RIGHT_LAG_MS",
+        "rightScaleMin": "BLINK_RIGHT_SCALE_MIN",
+        "rightScaleMax": "BLINK_RIGHT_SCALE_MAX",
     }
     result: dict[str, float] = {}
     for public_name, macro_name in names.items():
@@ -90,6 +92,38 @@ def embedded_eye_drift_profile(source: str) -> dict[str, float]:
     return result
 
 
+def browser_attention_decay_profile(source: str) -> dict[str, float]:
+    match = re.search(r"var ATTENTION_DECAY_PROFILE=\{([^}]+)\}", source)
+    if not match:
+        raise AssertionError("Expression Bench has no ATTENTION_DECAY_PROFILE")
+    return {
+        name: float(value)
+        for name, value in re.findall(r"([A-Za-z]+):\s*(\d+(?:\.\d+)?)", match.group(1))
+    }
+
+
+def embedded_attention_decay_profile(source: str) -> dict[str, float]:
+    names = {
+        "startMs": "ATTENTION_DECAY_START_MS",
+        "durationMs": "ATTENTION_DECAY_DURATION_MS",
+        "openDrop": "ATTENTION_DECAY_OPEN_DROP",
+        "lowerLidRise": "ATTENTION_DECAY_LOWER_LID_RISE",
+        "pupilDrop": "ATTENTION_DECAY_PUPIL_DROP",
+        "gazeDown": "ATTENTION_DECAY_GAZE_DOWN",
+        "browDrop": "ATTENTION_DECAY_BROW_DROP",
+        "wanderScale": "ATTENTION_DECAY_WANDER_SCALE",
+        "saccadeSlow": "ATTENTION_DECAY_SACCADE_SLOW",
+        "blinkSlow": "ATTENTION_DECAY_BLINK_SLOW",
+    }
+    result: dict[str, float] = {}
+    for public_name, macro_name in names.items():
+        match = re.search(rf"^#define {macro_name}\s+(\d+(?:\.\d+)?)[uf]$", source, re.MULTILINE)
+        if not match:
+            raise AssertionError(f"embedded motion is missing {macro_name}")
+        result[public_name] = float(match.group(1))
+    return result
+
+
 class MotionParityTests(unittest.TestCase):
     def test_browser_and_embedded_blink_profiles_match_spec(self) -> None:
         expected = {
@@ -99,6 +133,8 @@ class MotionParityTests(unittest.TestCase):
             "holdMs": 30.0,
             "openMs": 145.0,
             "rightLagMs": 0.0,
+            "rightScaleMin": 0.97,
+            "rightScaleMax": 1.0,
         }
         browser = browser_blink_profile(BENCH.read_text(encoding="utf-8"))
         embedded = embedded_blink_profile(EMBEDDED.read_text(encoding="utf-8"))
@@ -122,6 +158,24 @@ class MotionParityTests(unittest.TestCase):
         }
         browser = browser_eye_drift_profile(BENCH.read_text(encoding="utf-8"))
         embedded = embedded_eye_drift_profile(EMBEDDED.read_text(encoding="utf-8"))
+        self.assertEqual(expected, browser)
+        self.assertEqual(expected, embedded)
+
+    def test_browser_and_embedded_attention_decay_profiles_match(self) -> None:
+        expected = {
+            "startMs": 45000.0,
+            "durationMs": 90000.0,
+            "openDrop": 0.10,
+            "lowerLidRise": 0.04,
+            "pupilDrop": 0.03,
+            "gazeDown": 0.05,
+            "browDrop": 0.03,
+            "wanderScale": 1.45,
+            "saccadeSlow": 1.60,
+            "blinkSlow": 1.35,
+        }
+        browser = browser_attention_decay_profile(BENCH.read_text(encoding="utf-8"))
+        embedded = embedded_attention_decay_profile(EMBEDDED.read_text(encoding="utf-8"))
         self.assertEqual(expected, browser)
         self.assertEqual(expected, embedded)
 

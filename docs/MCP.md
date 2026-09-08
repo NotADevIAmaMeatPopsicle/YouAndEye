@@ -49,11 +49,17 @@ Shows one temporary semantic state. Common examples:
 express(affect="thinking", message="PLEASE WAIT...", text_mode="scroll")
 express(affect="success", sequence="celebrate")
 express(affect="listening", ttl_ms=10000)
+express(affect="uncertain", intensity=0.4, ttl_ms=2500)
+express(affect="reassuring", ttl_ms=3500)
 ```
 
 Important arguments are `affect`, `intensity`, optional `message`, `text_mode`, optional `sequence`,
 `ttl_ms`, `priority`, `gaze`, `behavior_mode`, and `autonomy`. A device-owned sequence and an explicit
 message are mutually exclusive.
+
+Prefer eyes-only calls for ordinary listening, thinking, uncertainty, and reassurance. Add mouth text when it
+clarifies content, confirms an important action, or provides useful status; it should support the expression,
+not carry the emotion by itself. Intensity changes the rendered geometry rather than merely tagging the frame.
 
 ### `face_status`
 

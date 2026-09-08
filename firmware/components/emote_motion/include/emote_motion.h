@@ -27,6 +27,7 @@ typedef struct {
     float gaze_velocity_y;
     float gaze_velocity;
     float breathing;
+    float attention_decay;
 } emote_motion_telemetry_t;
 
 typedef struct {
@@ -43,6 +44,7 @@ typedef struct {
     uint32_t next_blink_ms;
     uint32_t blink_started_ms;
     uint32_t blink_duration_ms;
+    float blink_right_scale;
     uint32_t next_saccade_ms;
     bool blink_active;
     bool double_blink_pending;

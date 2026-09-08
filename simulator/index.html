@@ -415,10 +415,17 @@ var STATES={
  sad:         {open:0.78,lidL:0.14,gx:0,   gy:0.34, pupil:0.52,browY:-0.02,browRot:-0.34,asym:0.04,arc:0,intensity:0.65,pupilShape:0,hue:0,text:'OOPS'},
  speaking:    {open:1.00,lidL:0.02,gx:0,   gy:-0.02,pupil:0.43,browY:0.12,browRot: 0.03,asym:0.04,arc:0.10,intensity:0.78,pupilShape:0,hue:0,text:'TALKING'},
  error:       {open:0.70,lidL:0.24,gx:0,   gy:0,    pupil:0.26,browY:-0.24,browRot:-0.42,asym:0.01,arc:0,intensity:0.92,pupilShape:0,hue:2,text:'ERROR'},
- success:     {open:0.98,lidL:0.02,gx:0,   gy:0,    pupil:0.44,browY:0.26,browRot: 0.07,asym:0.04,arc:1,intensity:0.88,pupilShape:0,hue:3,text:'DONE'}
+ success:     {open:0.98,lidL:0.02,gx:0,   gy:0,    pupil:0.44,browY:0.26,browRot: 0.07,asym:0.04,arc:1,intensity:0.88,pupilShape:0,hue:3,text:'DONE'},
+ curious:     {open:1.02,lidL:0.02,gx:0.28,gy:-0.12,pupil:0.50,browY:0.24,browRot: 0.20,asym:0.18,arc:0,intensity:0.74,pupilShape:0,hue:0,text:'? '},
+ uncertain:   {open:0.84,lidL:0.12,gx:-0.34,gy:0.22,pupil:0.39,browY:0.06,browRot:-0.24,asym:0.22,arc:0,intensity:0.62,pupilShape:0,hue:0,text:'UM...'},
+ concerned:   {open:0.88,lidL:0.10,gx:-0.08,gy:0.18,pupil:0.46,browY:0.10,browRot:-0.38,asym:0.08,arc:0,intensity:0.68,pupilShape:0,hue:0,text:'YOU OK?'},
+ delighted:   {open:0.84,lidL:0.00,gx:0,   gy:0.02,pupil:0.54,browY:0.28,browRot: 0.10,asym:0.06,arc:0.88,intensity:0.72,pupilShape:0,hue:0,text:'NICE'},
+ embarrassed: {open:0.72,lidL:0.16,gx:0.46,gy:0.34,pupil:0.48,browY:0.04,browRot:-0.22,asym:0.16,arc:0.16,intensity:0.66,pupilShape:0,hue:1,text:'OH...'},
+  reassuring:  {open:0.96,lidL:0.04,gx:0,   gy:0.06,pupil:0.48,browY:0.16,browRot: 0.12,asym:0.05,arc:0.48,intensity:0.70,pupilShape:0,hue:0,text:'I GOT YOU'}
 };
 var ORDER=['neutral','listening','thinking','working','happy','encouraging','surprised',
-           'excited','love','playful','suspicious','sad','speaking','error','success'];
+           'excited','love','playful','suspicious','sad','speaking','error','success',
+           'curious','uncertain','concerned','delighted','embarrassed','reassuring'];
 var CORE=['neutral','thinking','happy','surprised','suspicious','error'];
 var BEATS={
   attention:{state:'listening',text:'HEY YOU!',hold:1700},
@@ -427,7 +434,7 @@ var BEATS={
   error:{state:'error',text:'OOPS!',hold:1900},
   playful:{state:'playful',text:'HEHEHE',hold:1700},
   acknowledge:{state:'success',text:'GOT IT',hold:1700},
-  reassure:{state:'encouraging',text:'YOU GOT THIS',scroll:true,hold:2400}
+  reassure:{state:'reassuring',text:'YOU GOT THIS',scroll:true,hold:2400}
 };
 var BEAT_ORDER=['attention','thinking','success','error','playful'];
 var PROTOCOL_BEATS={attention:'attention',acknowledge:'acknowledge',celebrate:'success',reassure:'reassure',error:'error'};
@@ -457,7 +464,7 @@ var V={open:0,lidL:0,gx:0,gy:0,pupil:0,browY:0,browRot:0,asym:0,arc:0,shape:0,hu
 var T=Object.assign({},STATES.neutral);
 var current='neutral';
 
-var blinkPhase=0, blinkT=0, nextBlink=1.6, dblPending=false, blinkPreview=null;
+var blinkPhase=0, blinkT=0, nextBlink=1.6, dblPending=false, blinkPreview=null, blinkRightScale=1;
 var sacX=0, sacY=0, sacVX=0, sacVY=0, sacTX=0, sacTY=0, nextSac=0.9;
 var breathe=0, tRun=0;
 
@@ -470,10 +477,12 @@ var CHANNELS={
   pupil:{keys:['pupil'],delay:190,omega:5.5,tol:0.004,velTol:0.010}
 };
 var PUPIL_AUDIT_DELTA=0.025; /* ~1.5 px radius: below this, motion is not independently legible. */
-var BLINK_PROFILE={anticipationMs:34,anticipationOpen:0.04,closeMs:70,holdMs:30,openMs:145,rightLagMs:0};
+var BLINK_PROFILE={anticipationMs:34,anticipationOpen:0.04,closeMs:70,holdMs:30,openMs:145,rightLagMs:0,rightScaleMin:0.97,rightScaleMax:1.00};
 var GAZE_ARC_PROFILE={crossX:1.5,crossY:1.1,maxPx:4};
 var EYE_DRIFT_PROFILE={speed:0.83,amplitude:0.006,yScale:0.55,leftPhase:0.7,rightPhase:2.1};
+var ATTENTION_DECAY_PROFILE={startMs:45000,durationMs:90000,openDrop:0.10,lowerLidRise:0.04,pupilDrop:0.03,gazeDown:0.05,browDrop:0.03,wanderScale:1.45,saccadeSlow:1.60,blinkSlow:1.35};
 var transition={start:performance.now(),reaction:0,from:Object.assign({},S),changed:{},settled:{}};
+var stateStartedAt=performance.now();
 var idleAudit={seconds:0,staticFrames:0,last:null};
 var bridge={url:null,status:'standalone',lastKey:null,timer:null};
 var beat={active:null,timers:[]};
@@ -491,6 +500,20 @@ function spring(cur,vel,target,omega,dt){
   return [target+stepped*decay,(slope-omega*stepped)*decay];
 }
 function sstep(e0,e1,x){var t=clamp((x-e0)/(e1-e0),0,1);return t*t*(3-2*t);}
+function attentionDecay(now){
+  if(!UI.auto || current!=='neutral') return 0;
+  return sstep(0,1,(now-stateStartedAt-ATTENTION_DECAY_PROFILE.startMs)/ATTENTION_DECAY_PROFILE.durationMs);
+}
+var POSE_FIELDS=['open','lidL','gx','gy','pupil','browY','browRot','asym','arc'];
+function poseAtIntensity(name,intensity){
+  var base=STATES[name], neutral=STATES.neutral, value=clamp(intensity,0,1);
+  var weight=name==='neutral'?1:clamp(value/(base.intensity||0.70),0,1.15);
+  var pose=Object.assign({},base);
+  POSE_FIELDS.forEach(function(k){pose[k]=mix(neutral[k],base[k],weight);});
+  pose.intensity=value;
+  if(weight<0.55){pose.pupilShape=neutral.pupilShape;pose.hue=neutral.hue;}
+  return pose;
+}
 function targetValue(k){return k==='shape'?T.pupilShape:(T[k]===undefined?0:T[k]);}
 function desiredValue(k,now){
   if(manual[k]!==undefined && manual[k]!==null) return manual[k];
@@ -505,7 +528,10 @@ function desiredValue(k,now){
   return targetValue(k);
 }
 function beginTransition(){
-  transition={start:performance.now(),reaction:current==='error'?70:140+Math.random()*70,
+  var reaction=current==='error'?70:(current==='listening'?105+Math.random()*45:
+    (current==='thinking'?230+Math.random()*70:
+    ((current==='uncertain'||current==='concerned'||current==='embarrassed')?185+Math.random()*70:140+Math.random()*70)));
+  transition={start:performance.now(),reaction:reaction,
     from:Object.assign({},S),changed:{},settled:{}};
   Object.keys(CHANNELS).forEach(function(name){
     var changeTolerance=name==='pupil'?PUPIL_AUDIT_DELTA:CHANNELS[name].tol;
@@ -574,34 +600,66 @@ var HUES=[ null,
  * ------------------------------------------------------------------ */
 var stat={shaded:0,total:0};
 
+function expressivePose(isLeft){
+  var pose=Object.assign({},S), elapsed=performance.now()-transition.start;
+  if(UI.view!=='live') return pose;
+  var decay=attentionDecay(performance.now());
+  pose.open=clamp(pose.open-ATTENTION_DECAY_PROFILE.openDrop*decay,0.02,1.30);
+  pose.lidL=clamp(pose.lidL+ATTENTION_DECAY_PROFILE.lowerLidRise*decay,0,1);
+  pose.pupil=clamp(pose.pupil-ATTENTION_DECAY_PROFILE.pupilDrop*decay,0.12,0.86);
+  pose.gy=clamp(pose.gy+ATTENTION_DECAY_PROFILE.gazeDown*decay,-1,1);
+  pose.browY=clamp(pose.browY-ATTENTION_DECAY_PROFILE.browDrop*decay,-1,1);
+  if(current==='thinking' && transition.reaction>0 && elapsed<transition.reaction){
+    var hesitation=Math.sin(Math.PI*elapsed/transition.reaction);
+    pose.open=clamp(pose.open+0.025*hesitation,0.02,1.30);
+    pose.pupil=clamp(pose.pupil-0.018*hesitation,0.12,0.86);
+  }else if(current==='listening' && elapsed<700){
+    var attention=Math.sin(Math.PI*elapsed/700);
+    pose.open=clamp(pose.open+0.018*attention,0.02,1.30);
+    pose.pupil=clamp(pose.pupil+0.025*attention,0.12,0.86);
+  }else if((current==='success'||current==='encouraging'||current==='delighted') && elapsed>=650 && elapsed<1450){
+    var relief=Math.sin(Math.PI*(elapsed-650)/800);
+    pose.open=clamp(pose.open-0.055*relief,0.02,1.30);
+    pose.arc=clamp(pose.arc+0.08*relief,0,1);
+    pose.pupil=clamp(pose.pupil+0.020*relief,0.12,0.86);
+  }else if(current==='uncertain'||current==='concerned'||current==='embarrassed'){
+    var aversion=Math.sin(elapsed/1000*1.7);
+    pose.gx+=aversion*0.018; pose.gy+=Math.abs(aversion)*0.010;
+  }else if(current==='reassuring'){
+    pose.pupil=clamp(pose.pupil+Math.sin(elapsed/1000*1.1)*0.012,0.12,0.86);
+  }
+  return pose;
+}
+
 function renderEye(buf, isLeft){
+  var P=expressivePose(isLeft);
   var cx=EW*0.5, cy=EH*0.535;
   var eyeBlink=blinkAmount(isLeft);
   /* Wide-open states become rounder with a smaller iris so surprise remains
      readable without relying on a mouth or text display. */
-  var wideEye=clamp((S.open-1.05)/0.23,0,1);
+  var wideEye=clamp((P.open-1.05)/0.23,0,1);
   var RX=96*(1-wideEye*0.10), RY=106*(1+wideEye*0.08)*(1-eyeBlink*0.04);
 
   var mirror = isLeft ? -1 : 1;
   var eyeDrift=UI.view==='live'?Math.sin(tRun*EYE_DRIFT_PROFILE.speed+
     (isLeft?EYE_DRIFT_PROFILE.leftPhase:EYE_DRIFT_PROFILE.rightPhase))*EYE_DRIFT_PROFILE.amplitude:0;
-  var gx = S.gx+eyeDrift, gy = S.gy+eyeDrift*EYE_DRIFT_PROFILE.yScale;
+  var gx = P.gx+eyeDrift, gy = P.gy+eyeDrift*EYE_DRIFT_PROFILE.yScale;
   if(UI.legacy){ gx = Math.round(gx*34)/34; gy = Math.round(gy*30)/30; }
 
   /* eyelid geometry, in float pixels (legacy quantises to int rows) */
   /* Asymmetry must reach the lids as well as the brows. A raised brow over
      an equally open eye reads neutral; paired unequal apertures read clearly. */
-  var eyeAsym = isLeft ? S.asym : -S.asym;
-  var openA = clamp(S.open + eyeAsym*0.55 - eyeBlink*1.02, 0.02, 1.4);
+  var eyeAsym = isLeft ? P.asym : -P.asym;
+  var openA = clamp(P.open + eyeAsym*0.55 - eyeBlink*1.02, 0.02, 1.4);
   var upBase  = cy - RY*openA*0.94 + gy*5;
-  var loBase  = cy + RY*(openA*0.86 - S.lidL*0.5) + gy*8;
+  var loBase  = cy + RY*(openA*0.86 - P.lidL*0.5) + gy*8;
   if(UI.legacy){ upBase=Math.round(upBase); loBase=Math.round(loBase); }
-  var upTilt  = S.browRot*mirror*58;      /* angry/sad lid slant */
-  var upCurve = 26 - S.browY*10;
-  var loCurve = 16 + S.lidL*22;
+  var upTilt  = P.browRot*mirror*58;      /* angry/sad lid slant */
+  var upCurve = 26 - P.browY*10;
+  var loCurve = 16 + P.lidL*22;
 
   /* iris + pupil */
-  var irisR = (57 + S.intensity*3)*(1-wideEye*0.22);
+  var irisR = (57 + P.intensity*3)*(1-wideEye*0.22);
   /* The Heltec canvases squeeze the 240x320 design space into 160x160.
      Counter-scale circular iris details in X so they remain round on the
      exact physical preview; the eye globe itself intentionally stays broad. */
@@ -611,7 +669,7 @@ function renderEye(buf, isLeft){
   var ix = cx + gx*28 + mirror*1.8 + curveX;
   var iy = cy + gy*24 + curveY;
   if(UI.legacy){ ix=Math.round(ix); iy=Math.round(iy); }
-  var pupR = irisR*clamp(S.pupil + (UI.view==='live'?breathe*0.02:0), 0.12, 0.86);
+  var pupR = irisR*clamp(P.pupil + (UI.view==='live'?breathe*0.02:0), 0.12, 0.86);
   var limR = irisR - 5;
 
   /* dual specular — offsets are iris-local so they track gaze */
@@ -619,17 +677,17 @@ function renderEye(buf, isLeft){
   var h2x=ix+irisR*0.32*irisScaleX, h2y=iy+irisR*0.38, h2r=irisR*0.10;
 
   /* happy arc morph target */
-  var arcCY = cy + 76, arcR = 108, arcTh = 15 + S.intensity*4;
+  var arcCY = cy + 76, arcR = 108, arcTh = 15 + P.intensity*4;
 
   /* brow capsule */
-  var eyeBrowY=S.browY+(isLeft?S.asym:-S.asym);
-  var eyeBrowRot=S.browRot+(isLeft?S.asym:-S.asym)*0.65;
+  var eyeBrowY=P.browY+(isLeft?P.asym:-P.asym);
+  var eyeBrowRot=P.browRot+(isLeft?P.asym:-P.asym)*0.65;
   var browCX = cx + gx*7;
   var browCY = cy - RY - 18 - eyeBrowY*28;
   var browHalf = 54, browTh = 9;
   var bs = Math.sin(eyeBrowRot*mirror), bc = Math.cos(eyeBrowRot*mirror);
 
-  var hue = HUES[Math.round(S.hue)]||null;
+  var hue = HUES[Math.round(P.hue)]||null;
   var irisOut = hue?hue.irisOut:PAL.irisOut;
   var irisIn  = hue?hue.irisIn :PAL.irisIn;
   var limbal  = hue?hue.limbal :PAL.limbal;
@@ -674,11 +732,11 @@ function renderEye(buf, isLeft){
 
       /* ---- 3. happy arc: annulus clipped to its upper half ---- */
       var dShape=dEye;
-      if(S.arc>0.001){
+       if(P.arc>0.001){
         var ax=px, ay=y-arcCY;
         var dArc=Math.abs(Math.sqrt(ax*ax+ay*ay)-arcR)-arcTh;
         dArc=Math.max(dArc, ay+2);
-        dShape=mix(dEye,dArc,S.arc);
+         dShape=mix(dEye,dArc,P.arc);
       }
 
       var aEye=cov(dShape);
@@ -692,16 +750,16 @@ function renderEye(buf, isLeft){
         sr=mix(sr,PAL.scleraRim[0],rim*0.5); sg=mix(sg,PAL.scleraRim[1],rim*0.5); sb=mix(sb,PAL.scleraRim[2],rim*0.5);
 
         /* when morphed to an arc the fill becomes the iris colour */
-        if(S.arc>0.001){ sr=mix(sr,irisIn[0],S.arc); sg=mix(sg,irisIn[1],S.arc); sb=mix(sb,irisIn[2],S.arc); }
+        if(P.arc>0.001){ sr=mix(sr,irisIn[0],P.arc); sg=mix(sg,irisIn[1],P.arc); sb=mix(sb,irisIn[2],P.arc); }
 
         /* ---- 4. iris (skipped entirely in arc mode) ---- */
-        if(S.arc<0.985){
+        if(P.arc<0.985){
           var idx=px-(ix-cx), idxIso=idx/irisScaleX, idy=py-(iy-cy);
           var speed=Math.sqrt(V.gx*V.gx+V.gy*V.gy), stretch=clamp(speed*0.018,0,0.08);
           var vx=speed>0.001?V.gx/speed:1, vy=speed>0.001?V.gy/speed:0;
           var along=(idxIso*vx+idy*vy)/(1+stretch), across=-idxIso*vy+idy*vx;
           var dr=Math.sqrt(along*along+across*across);
-          var aIris=cov(dr-irisR)*(1-S.arc);
+          var aIris=cov(dr-irisR)*(1-P.arc);
           if(aIris>0){
             var t=clamp(dr/irisR,0,1), ir, ig, ib;
             if(UI.legacy){
@@ -721,9 +779,9 @@ function renderEye(buf, isLeft){
 
             /* ---- 5. pupil: circle, star or heart ---- */
             var dP;
-            if(S.shape<0.5){
+            if(P.shape<0.5){
               dP=dr-pupR;
-            } else if(S.shape<1.5){
+            } else if(P.shape<1.5){
               var ang=Math.atan2(idy,idxIso);
               var star=pupR*(0.74+0.40*Math.cos(5*ang-1.5708));
               dP=(dr-star)*0.62;
@@ -736,9 +794,9 @@ function renderEye(buf, isLeft){
               var tri=Math.max(Math.abs(hxp)*0.86+hyp*0.5-0.44, hyp-0.92);
               dP=Math.min(lobe,tri)*pupR;
             }
-            var aP=cov(dP)*(1-S.arc);
+            var aP=cov(dP)*(1-P.arc);
             if(aP>0){
-              var pc = S.shape>1.5 ? [252,232,240] : PAL.pupil;
+              var pc = P.shape>1.5 ? [252,232,240] : PAL.pupil;
               sr=mix(sr,pc[0],aP); sg=mix(sg,pc[1],aP); sb=mix(sb,pc[2],aP);
             }
           }
@@ -747,11 +805,11 @@ function renderEye(buf, isLeft){
           if(UI.spec){
             var h1dx=(x-h1x)/irisScaleX;
             var d1=Math.sqrt(h1dx*h1dx+(y-h1y)*(y-h1y))-h1r;
-            var a1=cov(d1)*0.97*(1-S.arc);
+            var a1=cov(d1)*0.97*(1-P.arc);
             if(a1>0){ sr=mix(sr,PAL.hi1[0],a1); sg=mix(sg,PAL.hi1[1],a1); sb=mix(sb,PAL.hi1[2],a1); }
             var h2dx=(x-h2x)/irisScaleX;
             var d2=Math.sqrt(h2dx*h2dx+(y-h2y)*(y-h2y))-h2r;
-            var a2=cov(d2)*0.80*(1-S.arc);
+            var a2=cov(d2)*0.80*(1-P.arc);
             if(a2>0){ sr=mix(sr,PAL.hi2[0],a2); sg=mix(sg,PAL.hi2[1],a2); sb=mix(sb,PAL.hi2[2],a2); }
           }
         }
@@ -846,7 +904,8 @@ function blinkCurve(t){
 function blinkAmount(isLeft){
   if(blinkPreview!==null) return blinkPreview;
   if(blinkPhase===0 || UI.view!=='live') return 0;
-  return blinkCurve(blinkT-(isLeft?0:BLINK_PROFILE.rightLagMs/1000));
+  var value=blinkCurve(blinkT-(isLeft?0:BLINK_PROFILE.rightLagMs/1000));
+  return isLeft?value:value*blinkRightScale;
 }
 
 /* ------------------------------------------------------------------ *
@@ -906,10 +965,10 @@ function mouthForState(name){
     var talking=[MOUTHS.speakClosed,MOUTHS.speakSmall,MOUTHS.speakWide,MOUTHS.speakSmall];
     return talking[Math.floor(tRun*7)%talking.length];
   }
-  if(name==='happy'||name==='encouraging'||name==='excited'||name==='love'||name==='success') return MOUTHS.smile;
-  if(name==='sad'||name==='error') return MOUTHS.frown;
+  if(name==='happy'||name==='encouraging'||name==='reassuring'||name==='delighted'||name==='excited'||name==='love'||name==='success') return MOUTHS.smile;
+  if(name==='sad'||name==='concerned'||name==='error') return MOUTHS.frown;
   if(name==='surprised') return MOUTHS.surprised;
-  if(name==='playful'||name==='suspicious'||name==='thinking') return MOUTHS.smirk;
+  if(name==='playful'||name==='suspicious'||name==='thinking'||name==='curious'||name==='uncertain'||name==='embarrassed') return MOUTHS.smirk;
   return MOUTHS.neutral;
 }
 
@@ -990,9 +1049,15 @@ function autonomy(dt){
   nextBlink-=dt;
   if(nextBlink<=0 && blinkPhase===0){
     blinkPhase=1; blinkT=0;
-    var base=current==='error'?1.2:(current==='working'||current==='thinking'?4.1:2.8);
-    nextBlink=base+Math.random()*(current==='error'?1.6:3.4);
-    dblPending=Math.random()<(current==='error'?0.34:0.22);
+    blinkRightScale=BLINK_PROFILE.rightScaleMin+Math.random()*(BLINK_PROFILE.rightScaleMax-BLINK_PROFILE.rightScaleMin);
+    var base=current==='error'?1.2:((current==='uncertain'||current==='embarrassed')?1.8:
+      (current==='listening'?2.4:((current==='excited'||current==='delighted')?2.0:
+      (current==='working'||current==='thinking'?3.6:2.8))));
+    var span=current==='error'?1.6:((current==='uncertain'||current==='embarrassed')?1.8:
+      (current==='listening'?2.0:((current==='excited'||current==='delighted')?2.3:3.4)));
+    var blinkSlow=mix(1,ATTENTION_DECAY_PROFILE.blinkSlow,attentionDecay(performance.now()));
+    nextBlink=(base+Math.random()*span)*blinkSlow;
+    dblPending=Math.random()<((current==='error')?0.34:((current==='uncertain'||current==='embarrassed')?0.30:0.18));
   }
   if(blinkPhase===1){
     blinkT+=dt;
@@ -1003,11 +1068,24 @@ function autonomy(dt){
   /* saccades: ballistic, slight overshoot, then micro-drift */
   nextSac-=dt;
   if(nextSac<=0){
+    var decay=attentionDecay(performance.now());
+    var wanderScale=mix(1,ATTENTION_DECAY_PROFILE.wanderScale,decay);
     var big=Math.random()<0.28;
     var glanceBack=current==='thinking' && Math.random()<0.34;
-    sacTX=glanceBack?0.36:(Math.random()*2-1)*(big?0.26:0.07);
-    sacTY=(Math.random()*2-1)*(big?0.18:0.05);
-    nextSac=current==='thinking'?(1.2+Math.random()*1.6):(big?(1.1+Math.random()*2.2):(0.35+Math.random()*0.9));
+    var randomX=Math.random()*2-1, randomY=Math.random()*2-1;
+    if(current==='listening'||current==='reassuring'){
+      sacTX=randomX*0.035; sacTY=randomY*0.025; nextSac=0.65+Math.random()*0.85;
+    }else if(current==='uncertain'||current==='concerned'){
+      sacTX=-0.08+randomX*0.06; sacTY=0.04+randomY*0.04; nextSac=0.9+Math.random()*1.3;
+    }else if(current==='embarrassed'){
+      sacTX=0.08+randomX*0.05; sacTY=0.06+randomY*0.035; nextSac=0.9+Math.random()*1.3;
+    }else{
+      sacTX=glanceBack?0.36:randomX*(big?0.26:0.07)*wanderScale;
+      sacTY=randomY*(big?0.18:0.05)*wanderScale;
+      nextSac=current==='thinking'?(1.2+Math.random()*1.6):
+        ((current==='playful'||current==='excited')?(0.25+Math.random()*0.60):(big?(1.1+Math.random()*2.2):(0.35+Math.random()*0.9)));
+      if(current==='neutral') nextSac*=mix(1,ATTENTION_DECAY_PROFILE.saccadeSlow,decay);
+    }
   }
   var rx=spring(sacX,sacVX,sacTX,26,dt); sacX=rx[0]; sacVX=rx[1];
   var ry=spring(sacY,sacVY,sacTY,26,dt); sacY=ry[0]; sacVY=ry[1];
@@ -1092,9 +1170,12 @@ ORDER.forEach(function(name){
   b.addEventListener('click',function(){ setState(name); });
   chips.appendChild(b);
 });
-function setState(name,preserveBeat){
+function setState(name,preserveBeat,intensityOverride){
   if(!preserveBeat) cancelBeat(true);
-  current=name; T=Object.assign({},STATES[name]);
+  current=name;
+  stateStartedAt=performance.now();
+  var nextIntensity=Number.isFinite(intensityOverride)?clamp(intensityOverride,0,1):STATES[name].intensity;
+  T=poseAtIntensity(name,nextIntensity);
   S.intensity=T.intensity;
   Object.keys(manual).forEach(function(k){manual[k]=null;});
   sacX=sacY=sacVX=sacVY=sacTX=sacTY=0;
@@ -1134,6 +1215,17 @@ function revealBeatText(text){
   setMouthPreview('utterance');
   msg=String(text||'').toUpperCase(); msgBits=buildMsg(msg); scroll=0;
 }
+function scrollPassMs(text){
+  var savedWidth=msgWidth, bits=buildMsg(String(text||'').toUpperCase());
+  msgWidth=savedWidth;
+  return Math.ceil(bits.length/(UI.surface==='heltec'?8:13)*1000)+250;
+}
+function beatHoldMs(spec){
+  var hold=spec.hold;
+  if(spec.scroll) hold=Math.max(hold,300+scrollPassMs(spec.text));
+  if(spec.followText&&spec.followScroll) hold=Math.max(hold,spec.followAt+scrollPassMs(spec.followText));
+  return hold;
+}
 function runBeat(name,stateOverride){
   var spec=BEATS[name]; if(!spec) return false;
   cancelBeat(false); beat.active=name;
@@ -1158,7 +1250,7 @@ function runBeat(name,stateOverride){
     beat.active=null; beat.timers=[]; setMouthPreview('mouth'); setState('neutral',true);
     Array.prototype.forEach.call(document.getElementById('beatChips').children,function(button){button.setAttribute('aria-pressed','false');});
     status.textContent=name+' · complete';
-  },spec.hold));
+  },beatHoldMs(spec)));
   return true;
 }
 var beatChips=document.getElementById('beatChips');
@@ -1178,7 +1270,8 @@ bindSlider('sOpen','oOpen','open'); bindSlider('sPupil','oPupil','pupil');
 bindSlider('sLidL','oLidL','lidL'); bindSlider('sBrowY','oBrowY','browY');
 bindSlider('sBrowRot','oBrowRot','browRot'); bindSlider('sAsym','oAsym','asym'); bindSlider('sArc','oArc','arc');
 document.getElementById('sInt').addEventListener('input',function(){
-  S.intensity=parseFloat(this.value);
+  var value=parseFloat(this.value);
+  T=poseAtIntensity(current,value); S.intensity=value; beginTransition();
   document.getElementById('oInt').textContent=S.intensity.toFixed(2);
 });
 document.getElementById('sShape').addEventListener('change',function(){manual.shape=parseFloat(this.value);});
@@ -1334,6 +1427,7 @@ function setUtterance(utterance, muted){
 function applyResolvedState(payload){
   if(!payload || payload.protocol!=='emote/1' || !payload.frame) throw new Error('invalid emote/1 bridge state');
   var frame=payload.frame, affect=frame.affect||{}, state=affect.state;
+  var requestedIntensity=typeof affect.intensity==='number'?clamp(affect.intensity,0,1):STATES[state].intensity;
   var muted=frame.channel_policy && frame.channel_policy.utterance==='mute';
   var sequenceDriven=frame.sequence && PROTOCOL_BEATS[frame.sequence] && !muted &&
     (!frame.utterance || frame.utterance.mode==='none');
@@ -1341,11 +1435,11 @@ function applyResolvedState(payload){
     var key=String(frame.source&&frame.source.session||'')+':'+String(frame.seq)+':'+payload.phase;
     if(bridge.lastKey!==key){
       if(sequenceDriven) runBeat(PROTOCOL_BEATS[frame.sequence],state);
-      else setState(state);
+      else setState(state,false,requestedIntensity);
       bridge.lastKey=key;
     }
     if(payload.phase==='decay' && typeof payload.weight==='number'){
-      var w=clamp(payload.weight,0,1), neutral=STATES.neutral, pose=STATES[state];
+      var w=clamp(payload.weight,0,1), neutral=STATES.neutral, pose=T;
       ['open','lidL','gx','gy','pupil','browY','browRot','asym','arc'].forEach(function(k){
         T[k]=mix(neutral[k],pose[k],w);
       });
@@ -1356,9 +1450,8 @@ function applyResolvedState(payload){
     UI.auto=behavior.autonomy; document.getElementById('cAuto').checked=UI.auto;
   }
   if(typeof affect.intensity==='number'){
-    S.intensity=clamp(affect.intensity,0,1);
-    document.getElementById('sInt').value=S.intensity;
-    document.getElementById('oInt').textContent=S.intensity.toFixed(2);
+    document.getElementById('sInt').value=requestedIntensity;
+    document.getElementById('oInt').textContent=requestedIntensity.toFixed(2);
   }
   if(frame.gaze){
     if(frame.gaze.target==='point'){
@@ -1404,15 +1497,18 @@ window.ExpressionBench={
   applyResolvedState:applyResolvedState,
   connectBridge:connectBridge,
   setBlinkPreview:function(value){blinkPreview=Number.isFinite(value)?clamp(value,0,1):null;},
+  setAttentionAgeMs:function(value){stateStartedAt=performance.now()-Math.max(0,Number(value)||0);},
   sampleBlink:function(elapsedMs,isLeft){
-    return blinkCurve((elapsedMs-(isLeft?0:BLINK_PROFILE.rightLagMs))/1000);
+    var value=blinkCurve((elapsedMs-(isLeft?0:BLINK_PROFILE.rightLagMs))/1000);
+    return isLeft?value:value*blinkRightScale;
   },
   diagnostics:function(){
     return {state:current,view:UI.view,surface:UI.surface,renderer:UI.legacy?'heltec-fast':'p2',mouthMode:UI.mouthMode,settled:Object.assign({},transition.settled),
       idleSeconds:idleAudit.seconds,staticFrames:idleAudit.staticFrames,
+      attentionDecay:attentionDecay(performance.now()),
       shadedPixels:stat.shaded,totalPixels:stat.total,utterance:msg,blinkPreview:blinkPreview,
       motionProfile:{blink:Object.assign({},BLINK_PROFILE),gazeArc:Object.assign({},GAZE_ARC_PROFILE),
-        eyeDrift:Object.assign({},EYE_DRIFT_PROFILE)},
+        eyeDrift:Object.assign({},EYE_DRIFT_PROFILE),attentionDecay:Object.assign({},ATTENTION_DECAY_PROFILE)},
       bridge:{status:bridge.status,url:bridge.url}};
   }
 };

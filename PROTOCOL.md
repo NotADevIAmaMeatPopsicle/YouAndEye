@@ -24,8 +24,14 @@ An `emote/1` frame is expiring state, not a queued animation:
 | `cause` | Diagnostic context; never rendered automatically |
 
 The stable affect vocabulary is `neutral`, `happy`, `surprised`, `thinking`, `suspicious`, `sad`, `excited`,
-`love`, `error`, `listening`, `speaking`, `working`, `success`, `playful`, and `encouraging`. The core visual
-readability gate is neutral, thinking, happy, surprised, suspicious, and error.
+`love`, `error`, `listening`, `speaking`, `working`, `success`, `playful`, `encouraging`, `curious`,
+`uncertain`, `concerned`, `delighted`, `embarrassed`, and `reassuring`. The core visual readability gate
+remains neutral, thinking, happy, surprised, suspicious, and error.
+
+Intensity is semantic, not decorative metadata. A value of `0` relaxes an affect toward neutral geometry;
+the authored intensity reproduces the canonical pose, and higher values strengthen it within renderer-safe
+limits. Surfaces may add small affect-aware gestures and local asymmetry, but those behaviors must not change
+the requested state or desynchronize the two eyes in time.
 
 ## Arbitration
 

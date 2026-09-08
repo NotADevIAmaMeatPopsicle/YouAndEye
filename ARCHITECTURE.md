@@ -28,7 +28,9 @@ device HTTP server. The optional host HTTP adapter binds only to loopback.
 3. A bounded arbiter selects one live source/session and retains replay state for a limited window.
 4. Capability downmix maps the semantic frame to eye and OLED commands.
 5. The serial adapter verifies the USB identity and firmware `STATUS` signature before writing commands.
-6. Firmware eases toward the target while continuing local blink, gaze, and idle behavior.
+6. Firmware eases toward intensity-scaled geometry while continuing local blink, gaze, idle behavior, and
+   short affect-aware acting cues such as hesitation, attention, relief, and gaze aversion. Untouched neutral
+   also develops a slow, bounded attention fade; the next semantic intent resets it immediately.
 7. Expired intent decays to the compiled-in neutral baseline.
 
 ## Concurrency and failure behavior
@@ -41,6 +43,8 @@ device HTTP server. The optional host HTTP adapter binds only to loopback.
 - Repeated busy, absent, wrong-firmware, timeout, or I/O failures open a short retry circuit.
 - A disconnect never freezes a reaction pose: firmware autonomy continues and the next successful command
   reconciles authoritative state.
+- Blink timing remains binocular; only a restrained 0–3% closure-depth difference is randomized so the face
+  feels organic without repeating the previously rejected inter-eye lag.
 
 ## Design invariant
 

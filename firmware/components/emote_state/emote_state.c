@@ -26,6 +26,12 @@ static const pose_entry_t POSES[EMOTE_AFFECT_COUNT] = {
     [EMOTE_SUCCESS] = {"success", POSE(0.98f, 0.02f, 0.00f, 0.00f, 0.44f, 0.26f, 0.07f, 0.04f, 1.00f, 0.88f, 0, 3)},
     [EMOTE_PLAYFUL] = {"playful", POSE(0.86f, 0.22f, 0.46f, 0.14f, 0.40f, 0.10f, 0.30f, 0.20f, 0.00f, 0.82f, 0, 0)},
     [EMOTE_ENCOURAGING] = {"encouraging", POSE(0.95f, 0.00f, 0.00f, 0.04f, 0.44f, 0.24f, 0.08f, 0.05f, 1.00f, 0.82f, 0, 0)},
+    [EMOTE_CURIOUS] = {"curious", POSE(1.02f, 0.02f, 0.28f, -0.12f, 0.50f, 0.24f, 0.20f, 0.18f, 0.00f, 0.74f, 0, 0)},
+    [EMOTE_UNCERTAIN] = {"uncertain", POSE(0.84f, 0.12f, -0.34f, 0.22f, 0.39f, 0.06f, -0.24f, 0.22f, 0.00f, 0.62f, 0, 0)},
+    [EMOTE_CONCERNED] = {"concerned", POSE(0.88f, 0.10f, -0.08f, 0.18f, 0.46f, 0.10f, -0.38f, 0.08f, 0.00f, 0.68f, 0, 0)},
+    [EMOTE_DELIGHTED] = {"delighted", POSE(0.84f, 0.00f, 0.00f, 0.02f, 0.54f, 0.28f, 0.10f, 0.06f, 0.88f, 0.72f, 0, 0)},
+    [EMOTE_EMBARRASSED] = {"embarrassed", POSE(0.72f, 0.16f, 0.46f, 0.34f, 0.48f, 0.04f, -0.22f, 0.16f, 0.16f, 0.66f, 0, 1)},
+    [EMOTE_REASSURING] = {"reassuring", POSE(0.96f, 0.04f, 0.00f, 0.06f, 0.48f, 0.16f, 0.12f, 0.05f, 0.48f, 0.70f, 0, 0)},
 };
 
 void emote_target_neutral(emote_target_t *target)
@@ -68,6 +74,34 @@ emote_pose_t emote_pose_for_affect(emote_affect_t affect)
 {
     if (affect < 0 || affect >= EMOTE_AFFECT_COUNT) affect = EMOTE_NEUTRAL;
     return POSES[affect].pose;
+}
+
+emote_pose_t emote_pose_for_affect_intensity(emote_affect_t affect, float intensity)
+{
+    if (affect < 0 || affect >= EMOTE_AFFECT_COUNT) affect = EMOTE_NEUTRAL;
+    const emote_pose_t neutral = POSES[EMOTE_NEUTRAL].pose;
+    const emote_pose_t authored = POSES[affect].pose;
+    if (intensity < 0.0f) intensity = 0.0f;
+    if (intensity > 1.0f) intensity = 1.0f;
+    const float reference = authored.intensity > 0.05f ? authored.intensity : 0.70f;
+    float weight = affect == EMOTE_NEUTRAL ? 1.0f : intensity / reference;
+    if (weight > 1.15f) weight = 1.15f;
+
+    emote_pose_t pose = {
+        .open = neutral.open + ((authored.open - neutral.open) * weight),
+        .lower_lid = neutral.lower_lid + ((authored.lower_lid - neutral.lower_lid) * weight),
+        .gaze_x = neutral.gaze_x + ((authored.gaze_x - neutral.gaze_x) * weight),
+        .gaze_y = neutral.gaze_y + ((authored.gaze_y - neutral.gaze_y) * weight),
+        .pupil = neutral.pupil + ((authored.pupil - neutral.pupil) * weight),
+        .brow_y = neutral.brow_y + ((authored.brow_y - neutral.brow_y) * weight),
+        .brow_rotation = neutral.brow_rotation + ((authored.brow_rotation - neutral.brow_rotation) * weight),
+        .asymmetry = neutral.asymmetry + ((authored.asymmetry - neutral.asymmetry) * weight),
+        .arc = neutral.arc + ((authored.arc - neutral.arc) * weight),
+        .intensity = intensity,
+        .pupil_shape = weight >= 0.55f ? authored.pupil_shape : neutral.pupil_shape,
+        .palette = weight >= 0.55f ? authored.palette : neutral.palette,
+    };
+    return pose;
 }
 
 static bool parse_name(const char *name, const char *const *names, size_t count, int *value)

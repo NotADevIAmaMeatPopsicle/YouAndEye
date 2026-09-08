@@ -210,6 +210,7 @@ static CharacterBeatState characterBeat;
 
 static void applyPreset(EyePreset preset);
 static void applyAffect(emote_affect_t affect);
+static void applyAffectWithIntensity(emote_affect_t affect, float intensity);
 static void processCommand(char *line);
 static void renderFrame();
 static void rightEyeRenderTask(void *unused);
@@ -240,6 +241,8 @@ static HeltecMouthShape mouthShapeForAffect(emote_affect_t affect)
   {
   case EMOTE_HAPPY:
   case EMOTE_ENCOURAGING:
+  case EMOTE_REASSURING:
+  case EMOTE_DELIGHTED:
   case EMOTE_EXCITED:
   case EMOTE_LOVE:
   case EMOTE_SUCCESS:
@@ -247,10 +250,14 @@ static HeltecMouthShape mouthShapeForAffect(emote_affect_t affect)
   case EMOTE_SURPRISED:
     return HeltecMouthShape::SURPRISED;
   case EMOTE_THINKING:
+  case EMOTE_CURIOUS:
+  case EMOTE_UNCERTAIN:
+  case EMOTE_EMBARRASSED:
   case EMOTE_SUSPICIOUS:
   case EMOTE_PLAYFUL:
     return HeltecMouthShape::SMIRK;
   case EMOTE_SAD:
+  case EMOTE_CONCERNED:
   case EMOTE_ERROR:
     return HeltecMouthShape::FROWN;
   case EMOTE_SPEAKING:
@@ -910,7 +917,12 @@ static void applyPreset(EyePreset preset)
 
 static void applyAffect(emote_affect_t affect)
 {
-  const emote_pose_t pose = emote_pose_for_affect(affect);
+  applyAffectWithIntensity(affect, emote_pose_for_affect(affect).intensity);
+}
+
+static void applyAffectWithIntensity(emote_affect_t affect, float intensity)
+{
+  const emote_pose_t pose = emote_pose_for_affect_intensity(affect, clampf(intensity, 0.0f, 1.0f));
   commandState.semanticAffectActive = true;
   commandState.affect = affect;
   commandState.targetLookX = pose.gaze_x;
@@ -981,7 +993,7 @@ static emote_affect_t characterBeatAffect(CharacterBeatKind kind)
   case BEAT_THINKING: return EMOTE_THINKING;
   case BEAT_SUCCESS: return EMOTE_ENCOURAGING;
   case BEAT_ACKNOWLEDGE: return EMOTE_SUCCESS;
-  case BEAT_REASSURE: return EMOTE_ENCOURAGING;
+  case BEAT_REASSURE: return EMOTE_REASSURING;
   case BEAT_ERROR: return EMOTE_ERROR;
   case BEAT_PLAYFUL: return EMOTE_PLAYFUL;
   case BEAT_NONE:
@@ -1057,7 +1069,8 @@ static void tickCharacterBeat(uint32_t nowMs)
     characterBeat.followupShown = true;
     showCharacterBeatText("GOOD JOB!", true);
   }
-  if (elapsed >= characterBeatDurationMs(characterBeat.kind))
+  const bool waitingForScroll = mouthDisplay.scrolling() && !mouthDisplay.scrollCycleCompleted();
+  if (elapsed >= characterBeatDurationMs(characterBeat.kind) && !waitingForScroll)
   {
     characterBeat = {};
     mouthDisplayMode = MOUTH_AUTO;
@@ -1066,7 +1079,7 @@ static void tickCharacterBeat(uint32_t nowMs)
   }
 }
 
-static bool applyAffectByName(const char *value)
+static bool applyAffectByName(const char *value, float intensity = -1.0f)
 {
   if (!value) return false;
   for (int index = 0; index < EMOTE_AFFECT_COUNT; ++index)
@@ -1074,7 +1087,8 @@ static bool applyAffectByName(const char *value)
     const emote_affect_t affect = (emote_affect_t)index;
     if (tokenEquals(value, emote_affect_name(affect)))
     {
-      applyAffect(affect);
+      if (intensity < 0.0f) applyAffect(affect);
+      else applyAffectWithIntensity(affect, intensity);
       return true;
     }
   }
@@ -1094,7 +1108,7 @@ static void printHelp()
   Serial.println("  OPEN <value>          range 0.02..1.30");
   Serial.println("  FOCUS <value>         range 0.00..0.60");
   Serial.println("  PRESET NATURAL|ALERT|SLEEPY|CURIOUS|FOCUSED");
-  Serial.println("  EMOTE <canonical affect>  neutral, happy, thinking, error, ...");
+  Serial.println("  EMOTE <canonical affect> [0.0..1.0]  neutral, happy, thinking, error, ...");
   Serial.println("  MOUTH AUTO|BLANK|STATUS  built-in Heltec OLED mode");
   Serial.println("  TEXT <message>|CLEAR|BLANK  show text on the built-in OLED");
   Serial.println("  SCROLL <message>        framed software-scroll OLED text");
@@ -1150,7 +1164,7 @@ static void printMotionStatus()
 {
   const emote_motion_telemetry_t *motion = emote_motion_telemetry(&semanticMotion);
   Serial.printf(
-      "MOTION shared=%d reactionMs=%lu settleGazeMs=%ld settleLidsMs=%ld settleBrowsMs=%ld settlePupilMs=%ld blinkLeft=%.3f blinkRight=%.3f gazeVelocity=%.3f gazeVelocityX=%.3f gazeVelocityY=%.3f breathing=%.3f\n",
+      "MOTION shared=%d reactionMs=%lu settleGazeMs=%ld settleLidsMs=%ld settleBrowsMs=%ld settlePupilMs=%ld blinkLeft=%.3f blinkRight=%.3f gazeVelocity=%.3f gazeVelocityX=%.3f gazeVelocityY=%.3f breathing=%.3f attentionDecay=%.3f\n",
       commandState.semanticAffectActive ? 1 : 0,
       (unsigned long)semanticMotion.reaction_ms,
       (long)settledMs(motion->transition_ms[EMOTE_CHANNEL_GAZE]),
@@ -1162,7 +1176,8 @@ static void printMotionStatus()
       motion->gaze_velocity,
       motion->gaze_velocity_x,
       motion->gaze_velocity_y,
-      motion->breathing);
+      motion->breathing,
+      motion->attention_decay);
 }
 
 static void processCommand(char *line)
@@ -1455,12 +1470,19 @@ static void processCommand(char *line)
   if (tokenEquals(token, "EMOTE"))
   {
     char *value = strtok(nullptr, " \t");
-    if (!applyAffectByName(value))
+    char *intensityToken = strtok(nullptr, " \t");
+    float intensity = -1.0f;
+    if (intensityToken && (!parseFloatToken(intensityToken, intensity) || intensity < 0.0f || intensity > 1.0f))
+    {
+      Serial.println("ERR EMOTE intensity must be in range 0.0..1.0");
+      return;
+    }
+    if (!applyAffectByName(value, intensity))
     {
       Serial.println("ERR EMOTE expects a canonical affect name");
       return;
     }
-    Serial.printf("OK EMOTE %s\n", affectLabel());
+    Serial.printf("OK EMOTE %s %.2f\n", affectLabel(), semanticTarget.intensity);
     return;
   }
 

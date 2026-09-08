@@ -47,18 +47,18 @@ class HeltecTransportTests(unittest.TestCase):
 
     def test_thinking_scroll_maps_both_channels(self) -> None:
         self.assertEqual(
-            ["EMOTE THINKING", "SCROLL PLEASE WAIT..."], commands_for_frame(self.frame)
+            ["EMOTE THINKING 0.70", "SCROLL PLEASE WAIT..."], commands_for_frame(self.frame)
         )
 
     def test_muted_utterance_blanks_oled(self) -> None:
         frame = deepcopy(self.frame)
         frame["channel_policy"]["utterance"] = "mute"
-        self.assertEqual(["EMOTE THINKING", "MOUTH BLANK"], commands_for_frame(frame))
+        self.assertEqual(["EMOTE THINKING 0.70", "MOUTH BLANK"], commands_for_frame(frame))
 
     def test_none_restores_affect_driven_mouth(self) -> None:
         frame = deepcopy(self.frame)
         frame["utterance"] = {"mode": "none", "sound": "none"}
-        self.assertEqual(["EMOTE THINKING", "MOUTH AUTO"], commands_for_frame(frame))
+        self.assertEqual(["EMOTE THINKING 0.70", "MOUTH AUTO"], commands_for_frame(frame))
 
     def test_sequence_uses_device_owned_character_beat(self) -> None:
         frame = deepcopy(self.frame)
@@ -70,8 +70,14 @@ class HeltecTransportTests(unittest.TestCase):
         frame = deepcopy(self.frame)
         frame["sequence"] = "attention"
         self.assertEqual(
-            ["EMOTE THINKING", "SCROLL PLEASE WAIT..."], commands_for_frame(frame)
+            ["EMOTE THINKING 0.70", "SCROLL PLEASE WAIT..."], commands_for_frame(frame)
         )
+
+    def test_affect_intensity_is_preserved_for_firmware(self) -> None:
+        frame = deepcopy(self.frame)
+        frame["affect"]["state"] = "uncertain"
+        frame["affect"]["intensity"] = 0.43
+        self.assertEqual("EMOTE UNCERTAIN 0.43", commands_for_frame(frame)[0])
 
     def test_text_is_single_line_and_bounded(self) -> None:
         frame = deepcopy(self.frame)

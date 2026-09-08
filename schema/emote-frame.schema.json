@@ -109,7 +109,8 @@
     "affectState": {
       "enum": [
         "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
-        "error", "listening", "speaking", "working", "success", "playful", "encouraging"
+        "error", "listening", "speaking", "working", "success", "playful", "encouraging",
+        "curious", "uncertain", "concerned", "delighted", "embarrassed", "reassuring"
       ]
     }
   }

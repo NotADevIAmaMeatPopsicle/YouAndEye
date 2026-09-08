@@ -55,7 +55,9 @@ def commands_for_frame(frame: Mapping[str, Any]) -> list[str]:
     commands: list[str] = []
 
     if policy.get("eyes", "auto") != "mute":
-        commands.append(f"EMOTE {checked['affect']['state'].upper()}")
+        commands.append(
+            f"EMOTE {checked['affect']['state'].upper()} {checked['affect']['intensity']:.2f}"
+        )
 
     utterance_muted = policy.get("utterance", "auto") == "mute" or policy.get(
         "mouth", "auto"

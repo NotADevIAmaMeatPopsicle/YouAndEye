@@ -25,6 +25,7 @@ public:
   void tick(uint32_t nowMs);
   bool ready() const { return initialized; }
   bool scrolling() const { return scrollActive; }
+  bool scrollCycleCompleted() const { return completedScrollCycle; }
   const char *text() const { return currentText; }
 
 private:
@@ -35,6 +36,7 @@ private:
 
   bool initialized = false;
   bool scrollActive = false;
+  bool completedScrollCycle = false;
   bool mouthActive = false;
   SemaphoreHandle_t mutex = nullptr;
   int16_t scrollX = 0;

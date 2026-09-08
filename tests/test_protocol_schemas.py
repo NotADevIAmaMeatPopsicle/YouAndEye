@@ -44,6 +44,22 @@ class ProtocolSchemaTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             Draft202012Validator(self.frame_schema).validate(invalid)
 
+    def test_nuanced_affects_are_part_of_the_public_contract(self) -> None:
+        nuanced = {
+            "curious",
+            "uncertain",
+            "concerned",
+            "delighted",
+            "embarrassed",
+            "reassuring",
+        }
+        advertised = set(self.capabilities["affects"])
+        self.assertTrue(nuanced <= advertised)
+        for affect in nuanced:
+            frame = deepcopy(self.frame)
+            frame["affect"]["state"] = affect
+            Draft202012Validator(self.frame_schema).validate(frame)
+
     def test_frame_rejects_out_of_range_gaze(self) -> None:
         invalid = deepcopy(self.frame)
         invalid["gaze"] = {"target": "point", "x": 1.1, "y": 0}

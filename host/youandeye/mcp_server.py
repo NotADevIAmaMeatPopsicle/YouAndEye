@@ -28,6 +28,12 @@ Affect = Literal[
     "success",
     "playful",
     "encouraging",
+    "curious",
+    "uncertain",
+    "concerned",
+    "delighted",
+    "embarrassed",
+    "reassuring",
 ]
 Sequence = Literal["attention", "acknowledge", "celebrate", "reassure", "error"]
 TextMode = Literal["static", "scroll", "icon", "speech"]
@@ -38,7 +44,8 @@ BehaviorMode = Literal["idle", "attentive", "tracking", "speaking", "sleepy"]
 
 SERVER_INSTRUCTIONS = (
     "YouandEye is a local expressive face. Use express at meaningful conversational state changes, not "
-    "for every token. Prefer device-owned sequences when no custom message is needed. Effects expire to "
+    "for every token. Let the eyes carry ordinary interaction; omit message unless words materially add "
+    "clarity. Prefer device-owned sequences when no custom message is needed. Effects expire to "
     "a safe autonomous neutral baseline. After a connection error, check face_status and call neutral once "
     "connected. Never guess a serial port or expose low-level pixel controls."
 )

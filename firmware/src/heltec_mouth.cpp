@@ -349,6 +349,7 @@ void HeltecMouthDisplay::showMouth(HeltecMouthShape shape)
     return;
   }
   setScroll(false);
+  completedScrollCycle = false;
   currentMouth = shape;
   mouthActive = true;
   mouthFrame = 0;
@@ -454,6 +455,7 @@ void HeltecMouthDisplay::showText(const char *text)
     return;
   }
   setScroll(false);
+  completedScrollCycle = false;
   mouthActive = false;
   copyText(text);
   renderText();
@@ -467,6 +469,7 @@ void HeltecMouthDisplay::scrollText(const char *text)
     return;
   }
   setScroll(false);
+  completedScrollCycle = false;
   mouthActive = false;
   copyText(text);
   buildLogicalText();
@@ -514,6 +517,7 @@ void HeltecMouthDisplay::tick(uint32_t nowMs)
     const int messageWidth = logicalWidth == 0 ? 0 : ((int)logicalWidth - 1) * LOGICAL_PITCH + LOGICAL_DOT;
     if (scrollX + messageWidth < CONTENT_LEFT)
     {
+      completedScrollCycle = true;
       scrollX = CONTENT_RIGHT + 1;
     }
     renderScrollFrame(false);
@@ -534,6 +538,7 @@ void HeltecMouthDisplay::blank()
     return;
   }
   setScroll(false);
+  completedScrollCycle = false;
   mouthActive = false;
   currentText[0] = '\0';
   clearPixels();

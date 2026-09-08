@@ -63,9 +63,15 @@ class ExpressionServiceTests(unittest.TestCase):
         )
         self.assertTrue(receipt["ok"])
         self.assertEqual(
-            ["EMOTE THINKING", "SCROLL PLEASE WAIT..."], self.device.batches[-1]
+            ["EMOTE THINKING 0.70", "SCROLL PLEASE WAIT..."], self.device.batches[-1]
         )
         self.assertEqual("thinking", receipt["frame"]["affect"]["state"])
+
+    def test_nuanced_expression_preserves_intensity_and_keeps_mouth_quiet(self) -> None:
+        receipt = self.service.express(affect="uncertain", intensity=0.43, ttl_ms=1200)
+        self.assertTrue(receipt["ok"])
+        self.assertEqual(["EMOTE UNCERTAIN 0.43", "MOUTH AUTO"], self.device.batches[-1])
+        self.assertEqual(0.43, receipt["frame"]["affect"]["intensity"])
 
     def test_sequence_becomes_one_device_owned_beat(self) -> None:
         self.service.express(affect="success", sequence="celebrate", ttl_ms=2500)
@@ -76,7 +82,7 @@ class ExpressionServiceTests(unittest.TestCase):
         self.now += 701
         result = self.service.reconcile()
         self.assertEqual("baseline", result["phase"])
-        self.assertEqual(["EMOTE NEUTRAL", "MOUTH AUTO"], self.device.batches[-1])
+        self.assertEqual(["EMOTE NEUTRAL 0.45", "MOUTH AUTO"], self.device.batches[-1])
 
     def test_background_expiry_returns_to_neutral(self) -> None:
         service = ExpressionService(
@@ -87,7 +93,7 @@ class ExpressionServiceTests(unittest.TestCase):
         try:
             service.express(affect="happy", ttl_ms=100)
             time.sleep(0.8)
-            self.assertEqual(["EMOTE NEUTRAL", "MOUTH AUTO"], self.device.batches[-1])
+            self.assertEqual(["EMOTE NEUTRAL 0.45", "MOUTH AUTO"], self.device.batches[-1])
         finally:
             service.close()
 
@@ -164,7 +170,7 @@ class ExpressionServiceTests(unittest.TestCase):
         self.service.express(affect="suspicious")
         receipt = self.service.neutral()
         self.assertTrue(receipt["ok"])
-        self.assertEqual(["EMOTE NEUTRAL", "MOUTH AUTO"], self.device.batches[-1])
+        self.assertEqual(["EMOTE NEUTRAL 0.45", "MOUTH AUTO"], self.device.batches[-1])
 
     def test_mcp_surface_exposes_only_semantic_tools(self) -> None:
         server = create_mcp(self.service)
@@ -180,6 +186,9 @@ class ExpressionServiceTests(unittest.TestCase):
         self.assertEqual(1.0, properties["intensity"]["maximum"])
         self.assertEqual(100, properties["ttl_ms"]["minimum"])
         self.assertEqual(600000, properties["ttl_ms"]["maximum"])
+        affect_schema = properties["affect"]
+        self.assertIn("uncertain", affect_schema["enum"])
+        self.assertIn("reassuring", affect_schema["enum"])
         self.assertNotIn("port", properties)
         self.assertNotIn("pixels", properties)
 

@@ -22,6 +22,12 @@ AFFECT_CENTERS: dict[str, tuple[float, float]] = {
     "success": (0.9, 0.75),
     "playful": (0.55, 0.7),
     "encouraging": (0.75, 0.45),
+    "curious": (0.35, 0.55),
+    "uncertain": (-0.15, 0.38),
+    "concerned": (-0.38, 0.42),
+    "delighted": (0.82, 0.48),
+    "embarrassed": (0.10, 0.52),
+    "reassuring": (0.58, 0.32),
 }
 
 

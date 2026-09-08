@@ -29,6 +29,19 @@ static int pose_is_finite(const emote_pose_t *pose)
            isfinite(pose->arc) && isfinite(pose->intensity);
 }
 
+static float pose_delta(const emote_pose_t *left, const emote_pose_t *right)
+{
+    return fabsf(left->open - right->open) +
+           fabsf(left->lower_lid - right->lower_lid) +
+           fabsf(left->gaze_x - right->gaze_x) +
+           fabsf(left->gaze_y - right->gaze_y) +
+           fabsf(left->pupil - right->pupil) +
+           fabsf(left->brow_y - right->brow_y) +
+           fabsf(left->brow_rotation - right->brow_rotation) +
+           fabsf(left->asymmetry - right->asymmetry) +
+           fabsf(left->arc - right->arc);
+}
+
 static int test_blink_timing(void)
 {
     emote_motion_t motion;
@@ -38,33 +51,104 @@ static int test_blink_timing(void)
 
     emote_motion_step(&motion, started_ms + 17u, 0.017f);
     if (require(emote_motion_telemetry(&motion)->blink_left < -0.039f &&
-                    emote_motion_telemetry(&motion)->blink_right < -0.039f,
+                    emote_motion_telemetry(&motion)->blink_right < -0.038f,
                 "both eyes did not begin with the 34 ms four-percent anticipation widen")) return 1;
 
     emote_motion_step(&motion, started_ms + 103u, 0.050f);
     const float left_closing = emote_motion_telemetry(&motion)->blink_left;
     const float right_closing = emote_motion_telemetry(&motion)->blink_right;
-    if (require(left_closing > 0.99f && right_closing > 0.99f &&
-                    fabsf(left_closing - right_closing) < 0.0001f,
-                "blink did not keep both eyes synchronized through the 70 ms close")) return 1;
+    if (require(left_closing > 0.99f && right_closing >= 0.97f &&
+                    right_closing <= left_closing &&
+                    fabsf(right_closing - (left_closing * motion.blink_right_scale)) < 0.0001f,
+                "blink did not keep synchronized timing with restrained per-eye amplitude")) return 1;
 
     emote_motion_step(&motion, started_ms + 119u, 0.016f);
     if (require(emote_motion_telemetry(&motion)->blink_left == 1.0f &&
-                    emote_motion_telemetry(&motion)->blink_right == 1.0f,
-                "both eyes did not hold fully closed between 70 and 100 ms")) return 1;
+                    emote_motion_telemetry(&motion)->blink_right >= 0.97f &&
+                    emote_motion_telemetry(&motion)->blink_right <= 1.0f,
+                "blink hold lost its synchronized, subtly uneven closure")) return 1;
 
     emote_motion_step(&motion, started_ms + 206u, 0.050f);
     const float left_opening = emote_motion_telemetry(&motion)->blink_left;
     const float right_opening = emote_motion_telemetry(&motion)->blink_right;
     if (require(left_opening > 0.45f && left_opening < 0.55f &&
-                    fabsf(left_opening - right_opening) < 0.0001f,
-                "blink did not keep both eyes synchronized through the 145 ms opening")) return 1;
+                    right_opening >= left_opening * 0.97f && right_opening <= left_opening &&
+                    fabsf(right_opening - (left_opening * motion.blink_right_scale)) < 0.0001f,
+                "blink opening lost synchronized timing or restrained asymmetry")) return 1;
 
     emote_motion_step(&motion, started_ms + 279u, 0.050f);
     if (require(!motion.blink_active &&
                     emote_motion_telemetry(&motion)->blink_left == 0.0f &&
                     emote_motion_telemetry(&motion)->blink_right == 0.0f,
                 "synchronized blink did not finish after both eye curves completed")) return 1;
+
+    return 0;
+}
+
+static int test_intensity_scales_expression_geometry(void)
+{
+    const emote_pose_t neutral = emote_pose_for_affect(EMOTE_NEUTRAL);
+    const emote_pose_t authored = emote_pose_for_affect(EMOTE_SUSPICIOUS);
+    const emote_pose_t muted = emote_pose_for_affect_intensity(EMOTE_SUSPICIOUS, 0.0f);
+    const emote_pose_t half = emote_pose_for_affect_intensity(
+        EMOTE_SUSPICIOUS, authored.intensity * 0.5f);
+    const emote_pose_t full = emote_pose_for_affect_intensity(
+        EMOTE_SUSPICIOUS, authored.intensity);
+
+    if (require(pose_delta(&muted, &neutral) < 0.0001f,
+                "zero intensity did not return expression geometry to neutral")) return 1;
+    if (require(pose_delta(&full, &authored) < 0.0001f,
+                "authored intensity did not reproduce the authored pose")) return 1;
+    if (require(fabsf(half.gaze_x - ((neutral.gaze_x + authored.gaze_x) * 0.5f)) < 0.0001f &&
+                    fabsf(half.open - ((neutral.open + authored.open) * 0.5f)) < 0.0001f,
+                "half intensity did not produce a halfway geometric expression")) return 1;
+    return 0;
+}
+
+static int test_nuanced_affects_and_acting_profiles(void)
+{
+    for (int affect = EMOTE_CURIOUS; affect < EMOTE_AFFECT_COUNT; ++affect) {
+        const emote_pose_t pose = emote_pose_for_affect((emote_affect_t)affect);
+        emote_affect_t parsed = EMOTE_NEUTRAL;
+        if (require(pose_is_finite(&pose), "a nuanced affect produced a non-finite pose") ||
+            require(emote_affect_from_name(emote_affect_name((emote_affect_t)affect), &parsed),
+                    "a nuanced affect name did not parse") ||
+            require(parsed == (emote_affect_t)affect, "a nuanced affect failed name round-trip")) {
+            return 1;
+        }
+    }
+
+    const uint32_t started_ms = 1000u;
+    emote_motion_t motion;
+    emote_target_t target;
+    emote_motion_init(&motion, 0x51a7u, started_ms);
+    emote_target_neutral(&target);
+    target.autonomy = false;
+    target.affect = EMOTE_THINKING;
+    target.intensity = emote_pose_for_affect(EMOTE_THINKING).intensity;
+    emote_motion_apply(&motion, &target, started_ms);
+    if (require(motion.reaction_ms >= 230u && motion.reaction_ms < 300u,
+                "thinking lost its brief hesitation window")) return 1;
+    const emote_pose_t thinking = emote_motion_render_pose(
+        &motion, true, started_ms + (motion.reaction_ms / 2u));
+    if (require(thinking.open > motion.current.open && thinking.pupil < motion.current.pupil,
+                "thinking hesitation did not visibly gather before the transition")) return 1;
+
+    target.affect = EMOTE_LISTENING;
+    target.intensity = emote_pose_for_affect(EMOTE_LISTENING).intensity;
+    emote_motion_apply(&motion, &target, started_ms);
+    if (require(motion.reaction_ms >= 105u && motion.reaction_ms < 150u,
+                "listening lost its quick attention lead")) return 1;
+    const emote_pose_t listening = emote_motion_render_pose(&motion, true, started_ms + 350u);
+    if (require(listening.open > motion.current.open && listening.pupil > motion.current.pupil,
+                "listening attention cue did not open toward the user")) return 1;
+
+    target.affect = EMOTE_SUCCESS;
+    target.intensity = emote_pose_for_affect(EMOTE_SUCCESS).intensity;
+    emote_motion_apply(&motion, &target, started_ms);
+    const emote_pose_t success = emote_motion_render_pose(&motion, true, started_ms + 1050u);
+    if (require(success.open < motion.current.open && success.arc > motion.current.arc,
+                "success did not include the small post-event relief release")) return 1;
 
     return 0;
 }
@@ -123,19 +207,6 @@ static int test_independent_eye_drift(void)
     return 0;
 }
 
-static float pose_delta(const emote_pose_t *left, const emote_pose_t *right)
-{
-    return fabsf(left->open - right->open) +
-           fabsf(left->lower_lid - right->lower_lid) +
-           fabsf(left->gaze_x - right->gaze_x) +
-           fabsf(left->gaze_y - right->gaze_y) +
-           fabsf(left->pupil - right->pupil) +
-           fabsf(left->brow_y - right->brow_y) +
-           fabsf(left->brow_rotation - right->brow_rotation) +
-           fabsf(left->asymmetry - right->asymmetry) +
-           fabsf(left->arc - right->arc);
-}
-
 static int test_sixty_second_idle_life(void)
 {
     emote_motion_t motion;
@@ -177,12 +248,47 @@ static int test_sixty_second_idle_life(void)
     return 0;
 }
 
+static int test_attention_decays_and_recovers(void)
+{
+    emote_motion_t motion;
+    emote_target_t target;
+    const uint32_t started_ms = 1000u;
+    emote_motion_init(&motion, 0x51a7u, started_ms);
+    emote_target_neutral(&target);
+    emote_motion_apply(&motion, &target, started_ms);
+
+    const emote_pose_t fresh = emote_motion_render_pose(&motion, true, started_ms + 1000u);
+    const emote_pose_t rested = emote_motion_render_pose(&motion, true, started_ms + 150000u);
+    if (require(rested.open < fresh.open - 0.09f,
+                "long-idle neutral did not soften the upper lids") ||
+        require(rested.lower_lid > fresh.lower_lid + 0.035f,
+                "long-idle neutral did not raise the lower lids") ||
+        require(rested.pupil < fresh.pupil - 0.025f,
+                "long-idle neutral did not relax the pupil") ||
+        require(rested.gaze_y > fresh.gaze_y + 0.045f,
+                "long-idle neutral did not settle its gaze")) return 1;
+
+    emote_motion_step(&motion, started_ms + 150000u, 0.033f);
+    if (require(motion.telemetry.attention_decay > 0.99f,
+                "attention-decay telemetry did not report full idle age")) return 1;
+
+    target.affect = EMOTE_LISTENING;
+    target.intensity = emote_pose_for_affect(EMOTE_LISTENING).intensity;
+    emote_motion_apply(&motion, &target, started_ms + 150001u);
+    if (require(emote_motion_telemetry(&motion)->attention_decay == 0.0f,
+                "new interaction did not immediately clear attention decay")) return 1;
+    return 0;
+}
+
 int main(void)
 {
     if (test_blink_timing()) return 1;
+    if (test_intensity_scales_expression_geometry()) return 1;
+    if (test_nuanced_affects_and_acting_profiles()) return 1;
     if (test_gaze_arc()) return 1;
     if (test_independent_eye_drift()) return 1;
     if (test_sixty_second_idle_life()) return 1;
+    if (test_attention_decays_and_recovers()) return 1;
 
     emote_motion_t motion;
     uint32_t now_ms = 1000u;

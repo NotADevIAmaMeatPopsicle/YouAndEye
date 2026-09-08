@@ -276,7 +276,7 @@ class PhysicalHttpBridgeTests(unittest.TestCase):
         self.assertEqual(202, response.status)
         self.assertTrue(receipt["delivery"]["sent"])
         self.assertEqual(
-            ["EMOTE THINKING", "SCROLL PLEASE WAIT..."], self.device.batches[-1]
+            ["EMOTE THINKING 0.70", "SCROLL PLEASE WAIT..."], self.device.batches[-1]
         )
 
     def test_device_endpoint_returns_physical_status(self) -> None:
