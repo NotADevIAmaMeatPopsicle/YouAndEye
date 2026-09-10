@@ -23,6 +23,7 @@ FIELDS = (
     "intensity",
     "pupilShape",
     "hue",
+    "effect",
 )
 CORE = ("neutral", "thinking", "happy", "surprised", "suspicious", "error")
 GEOMETRY_FIELDS = ("open", "lidL", "gx", "gy", "pupil", "browY", "browRot", "asym", "arc")

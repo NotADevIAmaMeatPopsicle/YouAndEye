@@ -16,7 +16,7 @@ local app ──loopback HTTP─┤         └─USB serial──> ESP32-S3 ─
   owns the serial lease.
 - `firmware/` is the accepted classic Heltec runtime. Its shared components own eye pose tables, motion, and
   RGB565 rendering; the built-in OLED remains a self-contained fallback surface.
-- `firmware/amoled-mouth/` is the optional round-mouth runtime. It owns a 21-affect pose vocabulary, staggered
+- `firmware/amoled-mouth/` is the optional round-mouth runtime. It owns a 38-affect pose vocabulary, staggered
   lip interpolation, anticipation, moving holds, speech visemes, restrained cartoon accents, text scrolling,
   icon rendering, completion feedback, and the CO5300 panel. It does not accept pixels or coordinates.
 - `schema/` and `protocol/examples/` are the machine-readable contract.

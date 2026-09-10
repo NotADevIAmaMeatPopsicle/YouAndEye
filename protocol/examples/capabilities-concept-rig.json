@@ -33,7 +33,10 @@
   "affects": [
     "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
     "error", "listening", "speaking", "working", "success", "playful", "encouraging",
-    "curious", "uncertain", "concerned", "delighted", "embarrassed", "reassuring"
+    "curious", "uncertain", "concerned", "delighted", "embarrassed", "reassuring",
+    "shocked", "weary", "confused", "blushing", "nervous", "maniacal", "stressed",
+    "determined", "bored", "panicked", "scheming", "fatigued", "content", "pleading",
+    "sick", "hyped", "baffled"
   ],
   "sequences": ["attention", "acknowledge", "celebrate", "reassure", "error"],
   "limits": {

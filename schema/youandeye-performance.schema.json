@@ -37,7 +37,10 @@
             "enum": [
               "neutral", "happy", "surprised", "thinking", "suspicious", "sad", "excited", "love",
               "error", "listening", "speaking", "working", "success", "playful", "encouraging",
-              "curious", "uncertain", "concerned", "delighted", "embarrassed", "reassuring"
+              "curious", "uncertain", "concerned", "delighted", "embarrassed", "reassuring",
+              "shocked", "weary", "confused", "blushing", "nervous", "maniacal", "stressed",
+              "determined", "bored", "panicked", "scheming", "fatigued", "content", "pleading",
+              "sick", "hyped", "baffled"
             ]
           },
           "intensity": {"type": "number", "minimum": 0, "maximum": 1},

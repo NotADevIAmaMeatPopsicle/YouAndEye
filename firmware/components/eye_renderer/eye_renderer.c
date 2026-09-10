@@ -82,6 +82,10 @@ static iris_palette_t palette_for(uint8_t palette)
         return (iris_palette_t){rgb565(112, 26, 26), rgb565(170, 56, 48), rgb565(228, 86, 74), rgb565(54, 10, 10)};
     case 3:
         return (iris_palette_t){rgb565(20, 88, 60), rgb565(53, 151, 105), rgb565(86, 214, 150), rgb565(8, 40, 28)};
+    case 4:
+        return (iris_palette_t){rgb565(112, 70, 10), rgb565(192, 126, 24), rgb565(255, 210, 78), rgb565(48, 26, 2)};
+    case 5:
+        return (iris_palette_t){rgb565(66, 28, 104), rgb565(130, 70, 190), rgb565(202, 128, 255), rgb565(28, 8, 48)};
     default:
         return (iris_palette_t){rgb565(17, 52, 106), rgb565(48, 112, 190), rgb565(86, 174, 244), rgb565(4, 14, 34)};
     }
@@ -97,6 +101,19 @@ static bool symbolic_pupil_inside(int dx, int dy, int radius, uint8_t shape)
         const bool cross = ax <= radius / 3 || ay <= radius / 3;
         const bool diagonal = abs(ax - ay) <= radius / 3;
         return (cross || diagonal) && (ax + ay <= (radius * 3) / 2);
+    }
+
+    if (shape == 3) {
+        const int distance_sq = (dx * dx) + (dy * dy);
+        const bool outer = distance_sq <= radius_sq && distance_sq >= (radius_sq * 38) / 100 &&
+                           ((dx >= 0 && dy <= radius / 3) || (dx < 0 && dy >= -radius / 3));
+        const bool inner = distance_sq <= (radius_sq * 48) / 100 && distance_sq >= (radius_sq * 10) / 100 &&
+                           ((dx <= 0 && dy <= radius / 5) || (dx > 0 && dy >= -radius / 5));
+        return outer || inner || distance_sq <= (radius_sq * 8) / 100;
+    }
+    if (shape == 4) {
+        const int thickness = maxi(1, radius / 4);
+        return abs(abs(dx) - abs(dy)) <= thickness && abs(dx) + abs(dy) <= (radius * 3) / 2;
     }
 
     const int lobe_radius = maxi(2, (radius * 3) / 5);
@@ -127,6 +144,71 @@ static void draw_disc(
                 destination[(y * width) + x] = color;
                 if (shaded) ++*shaded;
             }
+        }
+    }
+}
+
+static void draw_segment_fast(
+    uint16_t *destination, int width, int height,
+    int x0, int y0, int x1, int y1, int radius,
+    uint16_t color, uint32_t *shaded)
+{
+    const int dx = x1 - x0;
+    const int dy = y1 - y0;
+    const int steps = maxi(1, (int)sqrtf((float)(dx * dx + dy * dy)) / maxi(1, radius));
+    for (int step = 0; step <= steps; ++step) {
+        const float amount = (float)step / (float)steps;
+        draw_disc(
+            destination, width, height,
+            x0 + (int)((float)dx * amount), y0 + (int)((float)dy * amount),
+            radius, color, shaded);
+    }
+}
+
+static void draw_eye_effect(
+    uint16_t *destination, int width, int height,
+    int cx, int cy, int rx, int ry, bool left_eye,
+    uint8_t effect, uint32_t *shaded)
+{
+    if (effect == 0) return;
+    const float scale = fminf((float)width / 240.0f, (float)height / 320.0f);
+    const int stroke = maxi(1, (int)(4.0f * scale));
+    const uint16_t blue = rgb565(94, 202, 255);
+    const uint16_t pale_blue = rgb565(188, 236, 255);
+    const uint16_t red = rgb565(220, 72, 82);
+    const uint16_t rose = rgb565(245, 102, 164);
+    const uint16_t tired = rgb565(88, 112, 148);
+
+    if (effect == 1) {
+        const int x = cx + (left_eye ? rx * 2 / 3 : -rx * 2 / 3);
+        const int y = cy + ry * 3 / 5;
+        draw_disc(destination, width, height, x, y, maxi(2, (int)(8.0f * scale)), pale_blue, shaded);
+        draw_disc(destination, width, height, x, y + maxi(2, (int)(10.0f * scale)), maxi(2, (int)(6.0f * scale)), blue, shaded);
+    } else if (effect == 2 && !left_eye) {
+        const int x = cx + rx * 3 / 4;
+        const int y = cy - ry * 3 / 4;
+        draw_disc(destination, width, height, x, y, maxi(2, (int)(9.0f * scale)), pale_blue, shaded);
+        draw_segment_fast(destination, width, height, x, y - maxi(2, (int)(13.0f * scale)),
+                          x - maxi(2, (int)(7.0f * scale)), y, stroke, blue, shaded);
+    } else if (effect == 3) {
+        const int edge = cx + (left_eye ? -rx * 3 / 4 : rx * 3 / 4);
+        const int inward = cx + (left_eye ? -rx / 3 : rx / 3);
+        draw_segment_fast(destination, width, height, edge, cy - ry / 5, inward, cy - ry / 10, stroke, red, shaded);
+        draw_segment_fast(destination, width, height, edge, cy + ry / 5, inward, cy + ry / 10, stroke, red, shaded);
+    } else if (effect == 4) {
+        const int y = cy + ry * 3 / 4;
+        draw_segment_fast(destination, width, height, cx - rx / 2, y,
+                          cx + rx / 2, y + maxi(1, (int)(5.0f * scale)), stroke, tired, shaded);
+        draw_segment_fast(destination, width, height, cx - rx / 3, y + maxi(2, (int)(12.0f * scale)),
+                          cx + rx / 3, y + maxi(2, (int)(15.0f * scale)), maxi(1, stroke - 1), tired, shaded);
+    } else if (effect == 5) {
+        const int y = cy + ry * 3 / 4;
+        for (int offset = -1; offset <= 1; ++offset) {
+            const int x = cx + offset * maxi(3, (int)(18.0f * scale));
+            draw_segment_fast(destination, width, height,
+                              x - maxi(1, (int)(5.0f * scale)), y + maxi(1, (int)(5.0f * scale)),
+                              x + maxi(1, (int)(5.0f * scale)), y - maxi(1, (int)(5.0f * scale)),
+                              maxi(1, stroke - 1), rose, shaded);
         }
     }
 }
@@ -197,6 +279,7 @@ static void render_fast_rgb565(
     const int iris_ry_sq = iris_ry * iris_ry;
     const int iris_limit = iris_rx_sq * iris_ry_sq;
     const int pupil_radius = maxi(2, (int)(iris_radius * clampf(pose->pupil, 0.12f, 0.86f)));
+    const uint8_t pupil_shape = pose->pupil_shape == 5 ? (left_eye ? 0 : 4) : pose->pupil_shape;
     const float asymmetry = left_eye ? pose->asymmetry : -pose->asymmetry;
     const float eye_open = clampf(pose->open + (asymmetry * 0.55f), 0.02f, 1.4f);
     const int upper_base = cy - (int)(ry * eye_open * 0.94f) + (int)(pose->gaze_y * 5.0f * y_scale);
@@ -217,7 +300,11 @@ static void render_fast_rgb565(
     const int arc_outline_band = maxi(2, arc_radius * 4);
 
     const uint16_t outline = rgb565(9, 16, 28);
-    const uint16_t pupil = pose->pupil_shape == 2 ? rgb565(252, 232, 240) : rgb565(6, 11, 20);
+    const uint16_t pupil = pupil_shape == 1 ? rgb565(255, 226, 112)
+                           : pupil_shape == 2 ? rgb565(252, 232, 240)
+                           : pupil_shape == 3 ? rgb565(226, 214, 255)
+                           : pupil_shape == 4 ? rgb565(238, 244, 255)
+                                              : rgb565(6, 11, 20);
     const uint16_t highlight_primary = rgb565(255, 255, 255);
     const uint16_t highlight_secondary = rgb565(214, 235, 255);
     const uint16_t brow = rgb565(72, 84, 104);
@@ -288,7 +375,7 @@ static void render_fast_rgb565(
                     else if (iris_value > iris_middle_start) normal_color = iris.middle;
                     else normal_color = iris.inner;
 
-                    if (symbolic_pupil_inside(iris_dx, iris_dy, pupil_radius, pose->pupil_shape)) normal_color = pupil;
+                    if (symbolic_pupil_inside(iris_dx, iris_dy, pupil_radius, pupil_shape)) normal_color = pupil;
                     const int h1dx = x - h1x;
                     const int h1dy = y - h1y;
                     const int h2dx = x - h2x;
@@ -322,6 +409,9 @@ static void render_fast_rgb565(
     draw_curved_tapered_brow_fast(
         destination, width, height, (float)cx, (float)brow_center_y,
         brow_angle, (float)brow_half, scale, left_eye, brow, &shaded);
+    draw_eye_effect(
+        destination, width, height, cx, cy, rx, ry,
+        left_eye, pose->eye_effect, &shaded);
 
     if (metrics) {
         metrics->total_pixels = total;
@@ -393,6 +483,23 @@ static bool symbolic_pupil_inside_sample(float dx, float dy, float radius, uint8
         const bool cross = ax <= radius / 3.0f || ay <= radius / 3.0f;
         const bool diagonal = fabsf(ax - ay) <= radius / 3.0f;
         return (cross || diagonal) && (ax + ay <= radius * 1.5f);
+    }
+
+    if (shape == 3) {
+        const float radius_sq = radius * radius;
+        const float distance_sq = (dx * dx) + (dy * dy);
+        const bool outer = distance_sq <= radius_sq && distance_sq >= radius_sq * 0.38f &&
+                           ((dx >= 0.0f && dy <= radius / 3.0f) ||
+                            (dx < 0.0f && dy >= -radius / 3.0f));
+        const bool inner = distance_sq <= radius_sq * 0.48f && distance_sq >= radius_sq * 0.10f &&
+                           ((dx <= 0.0f && dy <= radius / 5.0f) ||
+                            (dx > 0.0f && dy >= -radius / 5.0f));
+        return outer || inner || distance_sq <= radius_sq * 0.08f;
+    }
+    if (shape == 4) {
+        const float thickness = fmaxf(1.0f, radius * 0.25f);
+        return fabsf(fabsf(dx) - fabsf(dy)) <= thickness &&
+               fabsf(dx) + fabsf(dy) <= radius * 1.5f;
     }
 
     const float lobe_radius = fmaxf(2.0f, radius * 0.6f);
@@ -522,6 +629,7 @@ static void render_antialiased_rgb565(
     const float iris_x = cx + (pose->gaze_x * 28.0f * x_scale) + ((float)mirror * 1.8f * x_scale);
     const float iris_y = cy + (pose->gaze_y * 24.0f * y_scale);
     const float pupil_radius = fmaxf(2.0f, iris_radius * clampf(pose->pupil, 0.12f, 0.86f));
+    const uint8_t pupil_shape = pose->pupil_shape == 5 ? (left_eye ? 0 : 4) : pose->pupil_shape;
     const float asymmetry = left_eye ? pose->asymmetry : -pose->asymmetry;
     const float eye_open = clampf(pose->open + (asymmetry * 0.55f), 0.02f, 1.4f);
     const float upper_base = cy - (ry * eye_open * 0.94f) + (pose->gaze_y * 5.0f * y_scale);
@@ -539,7 +647,11 @@ static void render_antialiased_rgb565(
     const float arc_outer = arc_radius + arc_thickness;
 
     const uint16_t outline = rgb565(9, 16, 28);
-    const uint16_t pupil = pose->pupil_shape == 2 ? rgb565(252, 232, 240) : rgb565(6, 11, 20);
+    const uint16_t pupil = pupil_shape == 1 ? rgb565(255, 226, 112)
+                           : pupil_shape == 2 ? rgb565(252, 232, 240)
+                           : pupil_shape == 3 ? rgb565(226, 214, 255)
+                           : pupil_shape == 4 ? rgb565(238, 244, 255)
+                                              : rgb565(6, 11, 20);
     const uint16_t highlight_primary = rgb565(255, 255, 255);
     const uint16_t highlight_secondary = rgb565(214, 235, 255);
     const uint16_t brow = rgb565(72, 84, 104);
@@ -599,10 +711,10 @@ static void render_antialiased_rgb565(
                     else if (iris_ratio > 0.24f) iris_color = iris.middle;
                     else iris_color = iris.inner;
 
-                    const int pupil_alpha = pose->pupil_shape == 0
+                    const int pupil_alpha = pupil_shape == 0
                         ? circle_coverage(iris_along, iris_across, pupil_radius)
                         : symbolic_pupil_coverage(
-                              iris_dx, iris_dy, pupil_radius, pose->pupil_shape);
+                              iris_dx, iris_dy, pupil_radius, pupil_shape);
                     iris_color = composite_coverage(iris_color, pupil, pupil_alpha, &coverage_blends);
                     iris_color = composite_coverage(
                         iris_color, highlight_primary,
@@ -678,6 +790,9 @@ static void render_antialiased_rgb565(
     draw_curved_tapered_brow_aa(
         destination, width, height, cx, brow_center_y, brow_angle,
         brow_half, scale, left_eye, brow, &shaded, &coverage_blends);
+    draw_eye_effect(
+        destination, width, height, (int)cx, (int)cy, (int)rx, (int)ry,
+        left_eye, pose->eye_effect, &shaded);
 
     if (metrics) {
         metrics->total_pixels = total;

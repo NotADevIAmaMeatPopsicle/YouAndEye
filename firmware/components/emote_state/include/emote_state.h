@@ -36,6 +36,23 @@ typedef enum {
     EMOTE_DELIGHTED,
     EMOTE_EMBARRASSED,
     EMOTE_REASSURING,
+    EMOTE_SHOCKED,
+    EMOTE_WEARY,
+    EMOTE_CONFUSED,
+    EMOTE_BLUSHING,
+    EMOTE_NERVOUS,
+    EMOTE_MANIACAL,
+    EMOTE_STRESSED,
+    EMOTE_DETERMINED,
+    EMOTE_BORED,
+    EMOTE_PANICKED,
+    EMOTE_SCHEMING,
+    EMOTE_FATIGUED,
+    EMOTE_CONTENT,
+    EMOTE_PLEADING,
+    EMOTE_SICK,
+    EMOTE_HYPED,
+    EMOTE_BAFFLED,
     EMOTE_AFFECT_COUNT
 } emote_affect_t;
 
@@ -103,6 +120,7 @@ typedef struct {
     float intensity;
     uint8_t pupil_shape;
     uint8_t palette;
+    uint8_t eye_effect;
 } emote_pose_t;
 
 void emote_target_neutral(emote_target_t *target);

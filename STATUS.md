@@ -6,15 +6,15 @@ the six core readability gate.
 
 | Area | Result |
 |---|---|
-| Python contract/host suite | 94/94 passing, including complete 21-affect mouth parity, dual-device fan-out, independent leases, and OLED fallback |
+| Python contract/host suite | 95/95 passing, including complete 38-affect mouth parity, concept-vocabulary schema coverage, dual-device fan-out, independent leases, and OLED fallback |
 | Native motion test | Passing, including identity bounds, semantic modifier clamps, core geometry preservation, synchronized blink, long-timescale attention, and 60-second deterministic idle checks |
 | Native RGB565 renderer test | Passing at 240×320 and 160×160, including fast 160×160 path |
-| Classic Heltec firmware build | Passing; 77,032 B RAM (23.5%), 363,925 B flash (27.8%) |
-| Round AMOLED firmware build | Passing; 21,152 B internal RAM (6.5%), 419,176 B flash (6.4%), 8 MB PSRAM detected live |
+| Classic Heltec firmware build | Passing; 77,032 B RAM (23.5%), 367,249 B flash (28.0%) |
+| Round AMOLED firmware build | Passing; 21,152 B internal RAM (6.5%), 421,324 B flash (6.4%); the preceding physical release detected 8 MB PSRAM live |
 | Firmware network surface | Removed; USB serial only |
 | Host serial ownership | Idle release, typed failures, retry circuit, cooperative marker, and OS lease lock |
-| Expression Bench | All 21 affects have authored mouth poses; semantic mouth studio and selectable 128×64 OLED/466×466 AMOLED heads visually inspected |
-| Current physical release | Both controllers flashed with verified upload hashes; a nine-beat semantic showcase completed across both surfaces and restored neutral, with the eye renderer reporting 31.3 FPS and AMOLED firmware 0.4.0 reporting `expressive-v2` |
+| Expression Bench | All 38 affects have authored eye and mouth poses; semantic mouth studio and selectable 128×64 OLED/466×466 AMOLED heads visually inspected with zero browser-console errors |
+| Current physical release | Both controllers flashed with verified upload hashes; all 17 concept additions were acknowledged by both surfaces and restored neutral, with the eye renderer reporting 31.2 FPS/zero misses and AMOLED firmware 0.5.0 reporting `concept-v3` with PSRAM active |
 | Local identity profiles | Active: `profile_required`, preview, approval, activation, update, reset, stable identity selection, curated styling, firmware temperament, and local SQLite persistence |
 | Semantic performances | Active: bounded beats, pacing hints, captions, modifiers, safe replace/reject/cancel, completion feedback, and automatic neutral restoration |
 
@@ -27,14 +27,17 @@ blink, gaze, idle, and mouth personality without changing authored core geometry
 created, physically previewed, activated, reloaded in a fresh service, and used for an autonomous three-beat
 scene that returned to its own neutral state with zero renderer misses.
 
-The round mouth now gives every canonical affect a deliberate silhouette and local performance. Open smiles,
-gasps, pucker, skeptical and sheepish asymmetry, worried and uncertain shapes, teeth, tongue, and restrained
+The round mouth now gives every canonical affect a deliberate silhouette and local performance. The concept
+expansion adds shocked, weary, confused, blushing, nervous, maniacal, stressed, determined, bored, panicked,
+scheming, fatigued, content, pleading, sick, hyped, and baffled. Open smiles, gasps, pucker, skeptical and
+sheepish asymmetry, worried and uncertain shapes, teeth, tongue, tears, questions, bubbles, and restrained
 thought/sparkle/heart/blush/sweat/alert accents are interpolated on-device. Speech cycles through six local
 visemes, and text or icons still preempt cleanly and report scrolling completion.
 
-The connected classic eye controller and round AMOLED mouth were both flashed for this release. A combined
-attention → thought → curiosity → surprise → play → delight → affection → reassurance → success performance
-completed through the semantic scene layer, exercised both surfaces, and restored neutral automatically. The
+The connected classic eye controller and round AMOLED mouth were both flashed for this release. A complete
+17-state concept sweep reached both surfaces through the semantic host, received paired acknowledgements, and
+restored neutral automatically. The preceding combined attention → thought → curiosity → surprise → play →
+delight → affection → reassurance → success performance also completed through the semantic scene layer. The
 Heltec OLED remains asleep while the AMOLED is available so the eye controller can concentrate on rendering;
 the existing fallback restores the built-in OLED when the external mouth is absent.
 

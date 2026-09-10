@@ -58,6 +58,8 @@ express(affect="success", sequence="celebrate")
 express(affect="listening", ttl_ms=10000)
 express(affect="uncertain", intensity=0.4, ttl_ms=2500)
 express(affect="reassuring", ttl_ms=3500)
+express(affect="pleading", intensity=0.75, ttl_ms=2400)
+express(affect="hyped", message="LET'S GO!", ttl_ms=3000)
 ```
 
 Important arguments are `affect`, `intensity`, optional `message`, `text_mode`, optional `sequence`,
@@ -70,6 +72,10 @@ not carry the emotion by itself. Intensity changes the rendered geometry rather 
 On the round AMOLED, the same semantic affect selects a dedicated cartoony mouth performance. Warmth influences
 softness, confidence influences breadth, urgency influences tempo, and intensity controls expression strength;
 the agent never selects lip coordinates or animation frames.
+
+The 38-state vocabulary includes quieter conversational shades such as `weary`, `content`, `bored`, and
+`pleading`, plus strongly cartooned beats such as `shocked`, `maniacal`, `sick`, `hyped`, and `baffled`.
+Curated pupils, palettes, tears, sweat, blush, veins, and tired lines remain renderer-owned details.
 
 ### `face_status`
 

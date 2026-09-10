@@ -259,7 +259,7 @@ class ExpressionServiceTests(unittest.TestCase):
         capabilities = self.service.capabilities()["mouth_surface"]
         self.assertEqual("semantic-affect", capabilities["control"])
         self.assertEqual("surface-owned", capabilities["animation"])
-        self.assertEqual(21, len(capabilities["affects"]))
+        self.assertEqual(38, len(capabilities["affects"]))
         self.assertIn("expressive", capabilities["styles"])
         self.assertNotIn("pixels", capabilities)
 

@@ -40,11 +40,28 @@ enum class MouthShape : uint8_t {
   EMBARRASSED,
   PUCKER,
   TENSE,
+  SHOCKED,
+  WEARY,
+  CONFUSED,
+  BLUSHING,
+  NERVOUS,
+  MANIACAL,
+  STRESSED,
+  DETERMINED,
+  BORED,
+  PANICKED,
+  SCHEMING,
+  FATIGUED,
+  CONTENT,
+  PLEADING,
+  SICK,
+  HYPED,
+  BAFFLED,
   SPEAKING
 };
 enum class MouthStyle : uint8_t { MINIMAL, EXPRESSIVE, TEXT_FRIENDLY };
 enum class BeatKind : uint8_t { NONE, ATTENTION, THINKING, SUCCESS, ACKNOWLEDGE, REASSURE, ERROR, PLAYFUL };
-enum class Decoration : uint8_t { NONE, THOUGHT, SPARKLE, CHECK, HEART, BLUSH, SWEAT, ALERT };
+enum class Decoration : uint8_t { NONE, THOUGHT, SPARKLE, CHECK, HEART, BLUSH, SWEAT, ALERT, TEAR, QUESTION, SICK };
 
 struct MouthPose
 {
@@ -141,6 +158,14 @@ void copySafe(char *target, size_t capacity, const char *source)
 
 uint16_t accentColor()
 {
+  if (shape == MouthShape::SICK) return rgb565(103, 220, 143);
+  if (shape == MouthShape::MANIACAL || shape == MouthShape::PANICKED || shape == MouthShape::STRESSED)
+    return rgb565(255, 102, 117);
+  if (shape == MouthShape::HYPED) return rgb565(255, 208, 91);
+  if (shape == MouthShape::CONFUSED || shape == MouthShape::BAFFLED || shape == MouthShape::SCHEMING)
+    return rgb565(201, 131, 255);
+  if (shape == MouthShape::BLUSHING || shape == MouthShape::PLEADING)
+    return rgb565(255, 120, 173);
   if (equalsIgnoreCase(accentName, "cyan")) return rgb565(38, 218, 255);
   if (equalsIgnoreCase(accentName, "violet")) return rgb565(178, 112, 255);
   if (equalsIgnoreCase(accentName, "gold")) return rgb565(255, 188, 68);
@@ -186,6 +211,23 @@ const char *shapeLabel()
   case MouthShape::PLAYFUL: return "playful";
   case MouthShape::PUCKER: return "pucker";
   case MouthShape::TENSE: return "tense";
+  case MouthShape::SHOCKED: return "shocked";
+  case MouthShape::WEARY: return "weary";
+  case MouthShape::CONFUSED: return "confused";
+  case MouthShape::BLUSHING: return "blushing";
+  case MouthShape::NERVOUS: return "nervous";
+  case MouthShape::MANIACAL: return "maniacal";
+  case MouthShape::STRESSED: return "stressed";
+  case MouthShape::DETERMINED: return "determined";
+  case MouthShape::BORED: return "bored";
+  case MouthShape::PANICKED: return "panicked";
+  case MouthShape::SCHEMING: return "scheming";
+  case MouthShape::FATIGUED: return "fatigued";
+  case MouthShape::CONTENT: return "content";
+  case MouthShape::PLEADING: return "pleading";
+  case MouthShape::SICK: return "sick";
+  case MouthShape::HYPED: return "hyped";
+  case MouthShape::BAFFLED: return "baffled";
   case MouthShape::SPEAKING: return "speaking";
   case MouthShape::NEUTRAL:
   default: return "neutral";
@@ -225,6 +267,23 @@ MouthPose poseForShape(MouthShape value)
   case MouthShape::EMBARRASSED: return {0.44f, 0.04f, 0.28f, 0.30f, 0.72f, 0.0f, 0.0f, Decoration::BLUSH};
   case MouthShape::PUCKER: return {0.24f, 0.20f, 0.0f, 0.0f, 1.28f, 0.0f, 0.0f, Decoration::HEART};
   case MouthShape::TENSE: return {0.52f, 0.02f, -0.10f, 0.0f, 0.68f, 0.0f, 0.0f, Decoration::ALERT};
+  case MouthShape::SHOCKED: return {0.40f, 1.00f, -0.04f, 0.0f, 1.30f, 0.0f, 0.08f, Decoration::ALERT};
+  case MouthShape::WEARY: return {0.50f, 0.025f, -0.42f, 0.08f, 0.76f, 0.0f, 0.0f, Decoration::TEAR};
+  case MouthShape::CONFUSED: return {0.46f, 0.035f, -0.06f, 0.52f, 0.78f, 0.0f, 0.0f, Decoration::QUESTION};
+  case MouthShape::BLUSHING: return {0.44f, 0.055f, 0.34f, 0.18f, 0.74f, 0.0f, 0.0f, Decoration::BLUSH};
+  case MouthShape::NERVOUS: return {0.31f, 0.34f, -0.12f, -0.10f, 1.20f, 0.0f, 0.0f, Decoration::SWEAT};
+  case MouthShape::MANIACAL: return {0.72f, 0.52f, 0.30f, 0.12f, 0.50f, 0.78f, 0.08f, Decoration::ALERT};
+  case MouthShape::STRESSED: return {0.56f, 0.07f, -0.30f, -0.24f, 0.68f, 0.0f, 0.0f, Decoration::ALERT};
+  case MouthShape::DETERMINED: return {0.58f, 0.035f, 0.10f, -0.12f, 0.62f, 0.0f, 0.0f, Decoration::NONE};
+  case MouthShape::BORED: return {0.40f, 0.012f, -0.02f, 0.04f, 0.68f, 0.0f, 0.0f, Decoration::NONE};
+  case MouthShape::PANICKED: return {0.50f, 0.88f, -0.18f, 0.06f, 0.92f, 0.12f, 0.05f, Decoration::SWEAT};
+  case MouthShape::SCHEMING: return {0.62f, 0.18f, 0.46f, 0.56f, 0.58f, 0.40f, 0.0f, Decoration::SPARKLE};
+  case MouthShape::FATIGUED: return {0.48f, 0.02f, -0.50f, -0.10f, 0.78f, 0.0f, 0.0f, Decoration::TEAR};
+  case MouthShape::CONTENT: return {0.50f, 0.025f, 0.42f, 0.0f, 0.78f, 0.0f, 0.0f, Decoration::NONE};
+  case MouthShape::PLEADING: return {0.46f, 0.09f, -0.24f, 0.0f, 0.88f, 0.0f, 0.0f, Decoration::TEAR};
+  case MouthShape::SICK: return {0.52f, 0.08f, -0.40f, 0.20f, 0.66f, 0.0f, 0.42f, Decoration::SICK};
+  case MouthShape::HYPED: return {0.74f, 0.64f, 0.74f, 0.0f, 0.55f, 0.54f, 0.16f, Decoration::SPARKLE};
+  case MouthShape::BAFFLED: return {0.42f, 0.045f, -0.08f, -0.50f, 0.80f, 0.0f, 0.0f, Decoration::QUESTION};
   case MouthShape::SPEAKING: return {0.56f, 0.42f, 0.08f, 0.0f, 0.78f, 0.10f, 0.20f, Decoration::NONE};
   case MouthShape::NEUTRAL:
   default: return {0.50f, 0.018f, 0.06f, 0.0f, 0.72f, 0.0f, 0.0f, Decoration::NONE};
@@ -270,6 +329,23 @@ MouthShape shapeForAffect(const char *name)
   if (equalsIgnoreCase(name, "embarrassed")) return MouthShape::EMBARRASSED;
   if (equalsIgnoreCase(name, "love")) return MouthShape::PUCKER;
   if (equalsIgnoreCase(name, "error")) return MouthShape::TENSE;
+  if (equalsIgnoreCase(name, "shocked")) return MouthShape::SHOCKED;
+  if (equalsIgnoreCase(name, "weary")) return MouthShape::WEARY;
+  if (equalsIgnoreCase(name, "confused")) return MouthShape::CONFUSED;
+  if (equalsIgnoreCase(name, "blushing")) return MouthShape::BLUSHING;
+  if (equalsIgnoreCase(name, "nervous")) return MouthShape::NERVOUS;
+  if (equalsIgnoreCase(name, "maniacal")) return MouthShape::MANIACAL;
+  if (equalsIgnoreCase(name, "stressed")) return MouthShape::STRESSED;
+  if (equalsIgnoreCase(name, "determined")) return MouthShape::DETERMINED;
+  if (equalsIgnoreCase(name, "bored")) return MouthShape::BORED;
+  if (equalsIgnoreCase(name, "panicked")) return MouthShape::PANICKED;
+  if (equalsIgnoreCase(name, "scheming")) return MouthShape::SCHEMING;
+  if (equalsIgnoreCase(name, "fatigued")) return MouthShape::FATIGUED;
+  if (equalsIgnoreCase(name, "content")) return MouthShape::CONTENT;
+  if (equalsIgnoreCase(name, "pleading")) return MouthShape::PLEADING;
+  if (equalsIgnoreCase(name, "sick")) return MouthShape::SICK;
+  if (equalsIgnoreCase(name, "hyped")) return MouthShape::HYPED;
+  if (equalsIgnoreCase(name, "baffled")) return MouthShape::BAFFLED;
   if (equalsIgnoreCase(name, "speaking")) return MouthShape::SPEAKING;
   return MouthShape::NEUTRAL;
 }
@@ -405,6 +481,21 @@ void drawDecorations(uint32_t nowMs, int16_t mouthY, uint16_t accent)
     drawThickSegment(372, mouthY - 76, 388, mouthY - 52, 4, glow);
     drawThickSegment(388, mouthY - 52, 367, mouthY - 50, 4, glow);
     drawThickSegment(367, mouthY - 50, 383, mouthY - 25, 4, accent);
+    break;
+  case Decoration::TEAR:
+    drawDrop(121, mouthY - 70 + (int16_t)(pulse * 4.0f), 22, scaleColor(accent, 0.86f));
+    break;
+  case Decoration::QUESTION:
+    drawThickSegment(332, mouthY - 126, 354, mouthY - 140, 7, accent);
+    drawThickSegment(354, mouthY - 140, 376, mouthY - 124, 7, accent);
+    drawThickSegment(376, mouthY - 124, 350, mouthY - 92, 7, accent);
+    drawThickSegment(350, mouthY - 92, 350, mouthY - 74, 7, accent);
+    surface->fillCircle(350, mouthY - 48, 7, accent);
+    break;
+  case Decoration::SICK:
+    surface->drawCircle(353, mouthY - 98, 14 + (int16_t)(pulse * 2.0f), accent);
+    surface->drawCircle(383, mouthY - 126, 9 + (int16_t)((1.0f - pulse) * 2.0f), accent);
+    surface->drawCircle(103, mouthY + 72, 7 + (int16_t)(pulse * 2.0f), scaleColor(accent, 0.72f));
     break;
   case Decoration::NONE:
     break;
@@ -554,7 +645,7 @@ void renderClosedMouth(float centerY, float halfWidth, uint16_t accent,
                        uint16_t glowWide, uint16_t glowNear, uint32_t nowMs)
 {
   const int radius = style == MouthStyle::MINIMAL ? 5 : 8;
-  if (shape == MouthShape::TENSE)
+  if (shape == MouthShape::TENSE || shape == MouthShape::STRESSED)
   {
     const float jitter = sinf((float)nowMs / 58.0f) * (1.0f + urgency * 2.0f);
     const float segment = halfWidth * 0.5f;
@@ -576,7 +667,7 @@ void renderClosedMouth(float centerY, float halfWidth, uint16_t accent,
                      CENTER + halfWidth, centerY + jitter, radius, accent);
     return;
   }
-  if (shape == MouthShape::UNCERTAIN)
+  if (shape == MouthShape::UNCERTAIN || shape == MouthShape::CONFUSED || shape == MouthShape::BAFFLED)
   {
     const float wobble = sinf((float)nowMs / 68.0f) * 3.0f;
     drawQuadratic(CENTER - halfWidth, centerY + currentSkew * 18.0f + wobble,
@@ -644,8 +735,11 @@ void renderMouth(uint32_t nowMs, uint16_t accent)
 
   const float life = sinf((float)nowMs / (980.0f - energy * 260.0f));
   float centerY = CENTER + life * (1.2f + energy * 2.6f);
-  if (shape == MouthShape::UNCERTAIN) centerY += sinf((float)nowMs / 68.0f) * 2.2f;
-  if (shape == MouthShape::DELIGHTED || shape == MouthShape::GRIN)
+  if (shape == MouthShape::UNCERTAIN || shape == MouthShape::CONFUSED || shape == MouthShape::BAFFLED)
+    centerY += sinf((float)nowMs / 68.0f) * 2.2f;
+  if (shape == MouthShape::NERVOUS || shape == MouthShape::STRESSED || shape == MouthShape::PANICKED)
+    centerY += sinf((float)nowMs / 43.0f) * (1.0f + urgency * 2.4f);
+  if (shape == MouthShape::DELIGHTED || shape == MouthShape::GRIN || shape == MouthShape::HYPED)
     centerY -= fabsf(sinf((float)nowMs / 210.0f)) * (1.0f + energy * 2.0f);
 
   float halfWidth = SCREEN_W * 0.5f * currentWidth * anticipationScale;
@@ -751,7 +845,7 @@ void tickScroll()
 void printStatus()
 {
   Serial.printf(
-      "STATUS product=youandeye-mouth firmware=0.4.0 display=co5300 size=466x466 mode=%s affect=%s shape=%s animation=expressive-v2 accent=%s brightness=%u scrolling=%d scrollComplete=%d psram=%d\n",
+      "STATUS product=youandeye-mouth firmware=0.5.0 display=co5300 size=466x466 mode=%s affect=%s shape=%s animation=concept-v3 accent=%s brightness=%u scrolling=%d scrollComplete=%d psram=%d\n",
       modeLabel(), affectName, shapeLabel(), accentName, brightness,
       mode == MouthMode::SCROLL ? 1 : 0, scrollComplete ? 1 : 0,
       psramFound() ? 1 : 0);

@@ -35,6 +35,23 @@ Affect = Literal[
     "delighted",
     "embarrassed",
     "reassuring",
+    "shocked",
+    "weary",
+    "confused",
+    "blushing",
+    "nervous",
+    "maniacal",
+    "stressed",
+    "determined",
+    "bored",
+    "panicked",
+    "scheming",
+    "fatigued",
+    "content",
+    "pleading",
+    "sick",
+    "hyped",
+    "baffled",
 ]
 Sequence = Literal["attention", "acknowledge", "celebrate", "reassure", "error"]
 TextMode = Literal["static", "scroll", "icon", "speech"]

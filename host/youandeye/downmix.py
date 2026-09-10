@@ -28,6 +28,23 @@ AFFECT_CENTERS: dict[str, tuple[float, float]] = {
     "delighted": (0.82, 0.48),
     "embarrassed": (0.10, 0.52),
     "reassuring": (0.58, 0.32),
+    "shocked": (-0.05, 1.0),
+    "weary": (-0.42, 0.12),
+    "confused": (-0.08, 0.55),
+    "blushing": (0.48, 0.58),
+    "nervous": (-0.32, 0.72),
+    "maniacal": (0.28, 1.0),
+    "stressed": (-0.55, 0.82),
+    "determined": (0.24, 0.72),
+    "bored": (-0.18, 0.08),
+    "panicked": (-0.72, 1.0),
+    "scheming": (0.08, 0.58),
+    "fatigued": (-0.46, 0.05),
+    "content": (0.62, 0.18),
+    "pleading": (-0.08, 0.62),
+    "sick": (-0.72, 0.45),
+    "hyped": (0.86, 1.0),
+    "baffled": (-0.12, 0.68),
 }
 
 

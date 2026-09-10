@@ -46,7 +46,10 @@ class MouthParityTests(unittest.TestCase):
             "Decoration::ALERT",
             "visemeOpen",
             "shapeChangedAtMs",
-            "animation=expressive-v2",
+            "Decoration::TEAR",
+            "Decoration::QUESTION",
+            "Decoration::SICK",
+            "animation=concept-v3",
         ):
             self.assertIn(marker, self.firmware)
         self.assertNotRegex(self.firmware, r'Serial\.println\("\s*(PIXEL|LINE|ELLIPSE)')

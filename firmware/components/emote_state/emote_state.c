@@ -7,31 +7,48 @@ typedef struct {
     emote_pose_t pose;
 } pose_entry_t;
 
-#define POSE(o, l, x, y, p, by, br, a, arc_, i, shape_, palette_) \
-    {o, l, x, y, p, by, br, a, arc_, i, shape_, palette_}
+#define POSE(o, l, x, y, p, by, br, a, arc_, i, shape_, palette_, effect_) \
+    {o, l, x, y, p, by, br, a, arc_, i, shape_, palette_, effect_}
 
 static const pose_entry_t POSES[EMOTE_AFFECT_COUNT] = {
-    [EMOTE_NEUTRAL] = {"neutral", POSE(1.00f, 0.00f, 0.00f, 0.00f, 0.42f, 0.00f, 0.00f, 0.02f, 0.00f, 0.70f, 0, 0)},
-    [EMOTE_HAPPY] = {"happy", POSE(0.95f, 0.00f, 0.00f, 0.00f, 0.44f, 0.20f, 0.06f, 0.03f, 1.00f, 0.78f, 0, 0)},
-    [EMOTE_SURPRISED] = {"surprised", POSE(1.28f, 0.00f, 0.00f, -0.10f, 0.27f, 0.46f, 0.02f, 0.02f, 0.00f, 0.92f, 0, 0)},
-    [EMOTE_THINKING] = {"thinking", POSE(0.90f, 0.10f, -0.42f, -0.34f, 0.34f, 0.08f, -0.12f, 0.13f, 0.00f, 0.72f, 0, 0)},
-    [EMOTE_SUSPICIOUS] = {"suspicious", POSE(0.55f, 0.34f, -0.72f, 0.08f, 0.28f, -0.22f, -0.30f, 0.25f, 0.00f, 0.84f, 0, 0)},
-    [EMOTE_SAD] = {"sad", POSE(0.78f, 0.14f, 0.00f, 0.34f, 0.52f, -0.02f, -0.34f, 0.04f, 0.00f, 0.65f, 0, 0)},
-    [EMOTE_EXCITED] = {"excited", POSE(1.16f, 0.00f, 0.00f, -0.04f, 0.62f, 0.40f, 0.00f, 0.08f, 0.00f, 0.96f, 1, 0)},
-    [EMOTE_LOVE] = {"love", POSE(1.02f, 0.00f, 0.00f, 0.02f, 0.70f, 0.22f, 0.05f, 0.03f, 0.00f, 0.94f, 2, 1)},
-    [EMOTE_ERROR] = {"error", POSE(0.70f, 0.24f, 0.00f, 0.00f, 0.26f, -0.24f, -0.42f, 0.01f, 0.00f, 0.92f, 0, 2)},
-    [EMOTE_LISTENING] = {"listening", POSE(1.06f, 0.00f, 0.00f, -0.06f, 0.46f, 0.16f, 0.02f, 0.03f, 0.00f, 0.74f, 0, 0)},
-    [EMOTE_SPEAKING] = {"speaking", POSE(1.00f, 0.02f, 0.00f, -0.02f, 0.43f, 0.12f, 0.03f, 0.04f, 0.10f, 0.78f, 0, 0)},
-    [EMOTE_WORKING] = {"working", POSE(0.94f, 0.06f, 0.18f, -0.10f, 0.36f, 0.02f, -0.06f, 0.03f, 0.00f, 0.68f, 0, 0)},
-    [EMOTE_SUCCESS] = {"success", POSE(0.98f, 0.02f, 0.00f, 0.00f, 0.44f, 0.26f, 0.07f, 0.04f, 1.00f, 0.88f, 0, 3)},
-    [EMOTE_PLAYFUL] = {"playful", POSE(0.86f, 0.22f, 0.46f, 0.14f, 0.40f, 0.10f, 0.30f, 0.20f, 0.00f, 0.82f, 0, 0)},
-    [EMOTE_ENCOURAGING] = {"encouraging", POSE(0.95f, 0.00f, 0.00f, 0.04f, 0.44f, 0.24f, 0.08f, 0.05f, 1.00f, 0.82f, 0, 0)},
-    [EMOTE_CURIOUS] = {"curious", POSE(1.02f, 0.02f, 0.28f, -0.12f, 0.50f, 0.24f, 0.20f, 0.18f, 0.00f, 0.74f, 0, 0)},
-    [EMOTE_UNCERTAIN] = {"uncertain", POSE(0.84f, 0.12f, -0.34f, 0.22f, 0.39f, 0.06f, -0.24f, 0.22f, 0.00f, 0.62f, 0, 0)},
-    [EMOTE_CONCERNED] = {"concerned", POSE(0.88f, 0.10f, -0.08f, 0.18f, 0.46f, 0.10f, -0.38f, 0.08f, 0.00f, 0.68f, 0, 0)},
-    [EMOTE_DELIGHTED] = {"delighted", POSE(0.84f, 0.00f, 0.00f, 0.02f, 0.54f, 0.28f, 0.10f, 0.06f, 0.88f, 0.72f, 0, 0)},
-    [EMOTE_EMBARRASSED] = {"embarrassed", POSE(0.72f, 0.16f, 0.46f, 0.34f, 0.48f, 0.04f, -0.22f, 0.16f, 0.16f, 0.66f, 0, 1)},
-    [EMOTE_REASSURING] = {"reassuring", POSE(0.96f, 0.04f, 0.00f, 0.06f, 0.48f, 0.16f, 0.12f, 0.05f, 0.48f, 0.70f, 0, 0)},
+    [EMOTE_NEUTRAL] = {"neutral", POSE(1.00f, 0.00f, 0.00f, 0.00f, 0.42f, 0.00f, 0.00f, 0.02f, 0.00f, 0.70f, 0, 0, 0)},
+    [EMOTE_HAPPY] = {"happy", POSE(0.95f, 0.00f, 0.00f, 0.00f, 0.44f, 0.20f, 0.06f, 0.03f, 1.00f, 0.78f, 0, 0, 0)},
+    [EMOTE_SURPRISED] = {"surprised", POSE(1.28f, 0.00f, 0.00f, -0.10f, 0.27f, 0.46f, 0.02f, 0.02f, 0.00f, 0.92f, 0, 0, 0)},
+    [EMOTE_THINKING] = {"thinking", POSE(0.90f, 0.10f, -0.42f, -0.34f, 0.34f, 0.08f, -0.12f, 0.13f, 0.00f, 0.72f, 0, 0, 0)},
+    [EMOTE_SUSPICIOUS] = {"suspicious", POSE(0.55f, 0.34f, -0.72f, 0.08f, 0.28f, -0.22f, -0.30f, 0.25f, 0.00f, 0.84f, 0, 0, 0)},
+    [EMOTE_SAD] = {"sad", POSE(0.78f, 0.14f, 0.00f, 0.34f, 0.52f, -0.02f, -0.34f, 0.04f, 0.00f, 0.65f, 0, 0, 0)},
+    [EMOTE_EXCITED] = {"excited", POSE(1.16f, 0.00f, 0.00f, -0.04f, 0.62f, 0.40f, 0.00f, 0.08f, 0.00f, 0.96f, 1, 0, 0)},
+    [EMOTE_LOVE] = {"love", POSE(1.02f, 0.00f, 0.00f, 0.02f, 0.70f, 0.22f, 0.05f, 0.03f, 0.00f, 0.94f, 2, 1, 0)},
+    [EMOTE_ERROR] = {"error", POSE(0.70f, 0.24f, 0.00f, 0.00f, 0.26f, -0.24f, -0.42f, 0.01f, 0.00f, 0.92f, 0, 2, 0)},
+    [EMOTE_LISTENING] = {"listening", POSE(1.06f, 0.00f, 0.00f, -0.06f, 0.46f, 0.16f, 0.02f, 0.03f, 0.00f, 0.74f, 0, 0, 0)},
+    [EMOTE_SPEAKING] = {"speaking", POSE(1.00f, 0.02f, 0.00f, -0.02f, 0.43f, 0.12f, 0.03f, 0.04f, 0.10f, 0.78f, 0, 0, 0)},
+    [EMOTE_WORKING] = {"working", POSE(0.94f, 0.06f, 0.18f, -0.10f, 0.36f, 0.02f, -0.06f, 0.03f, 0.00f, 0.68f, 0, 0, 0)},
+    [EMOTE_SUCCESS] = {"success", POSE(0.98f, 0.02f, 0.00f, 0.00f, 0.44f, 0.26f, 0.07f, 0.04f, 1.00f, 0.88f, 0, 3, 0)},
+    [EMOTE_PLAYFUL] = {"playful", POSE(0.86f, 0.22f, 0.46f, 0.14f, 0.40f, 0.10f, 0.30f, 0.20f, 0.00f, 0.82f, 0, 0, 0)},
+    [EMOTE_ENCOURAGING] = {"encouraging", POSE(0.95f, 0.00f, 0.00f, 0.04f, 0.44f, 0.24f, 0.08f, 0.05f, 1.00f, 0.82f, 0, 0, 0)},
+    [EMOTE_CURIOUS] = {"curious", POSE(1.02f, 0.02f, 0.28f, -0.12f, 0.50f, 0.24f, 0.20f, 0.18f, 0.00f, 0.74f, 0, 0, 0)},
+    [EMOTE_UNCERTAIN] = {"uncertain", POSE(0.84f, 0.12f, -0.34f, 0.22f, 0.39f, 0.06f, -0.24f, 0.22f, 0.00f, 0.62f, 0, 0, 0)},
+    [EMOTE_CONCERNED] = {"concerned", POSE(0.88f, 0.10f, -0.08f, 0.18f, 0.46f, 0.10f, -0.38f, 0.08f, 0.00f, 0.68f, 0, 0, 0)},
+    [EMOTE_DELIGHTED] = {"delighted", POSE(0.84f, 0.00f, 0.00f, 0.02f, 0.54f, 0.28f, 0.10f, 0.06f, 0.88f, 0.72f, 0, 0, 0)},
+    [EMOTE_EMBARRASSED] = {"embarrassed", POSE(0.72f, 0.16f, 0.46f, 0.34f, 0.48f, 0.04f, -0.22f, 0.16f, 0.16f, 0.66f, 0, 1, 0)},
+    [EMOTE_REASSURING] = {"reassuring", POSE(0.96f, 0.04f, 0.00f, 0.06f, 0.48f, 0.16f, 0.12f, 0.05f, 0.48f, 0.70f, 0, 0, 0)},
+    [EMOTE_SHOCKED] = {"shocked", POSE(1.34f, 0.00f, 0.00f, -0.12f, 0.20f, 0.55f, 0.02f, 0.04f, 0.00f, 0.98f, 0, 0, 0)},
+    [EMOTE_WEARY] = {"weary", POSE(0.54f, 0.32f, -0.18f, 0.32f, 0.34f, -0.12f, -0.30f, 0.12f, 0.00f, 0.60f, 0, 0, 4)},
+    [EMOTE_CONFUSED] = {"confused", POSE(0.98f, 0.06f, -0.30f, 0.10f, 0.38f, 0.10f, 0.28f, 0.34f, 0.00f, 0.72f, 3, 5, 0)},
+    [EMOTE_BLUSHING] = {"blushing", POSE(0.90f, 0.10f, 0.38f, 0.24f, 0.58f, 0.12f, -0.16f, 0.16f, 0.00f, 0.76f, 2, 1, 5)},
+    [EMOTE_NERVOUS] = {"nervous", POSE(1.15f, 0.04f, 0.18f, 0.12f, 0.23f, 0.36f, -0.42f, 0.12f, 0.00f, 0.84f, 0, 0, 2)},
+    [EMOTE_MANIACAL] = {"maniacal", POSE(1.20f, 0.00f, 0.12f, 0.06f, 0.22f, -0.22f, -0.50f, 0.18f, 0.00f, 0.98f, 0, 2, 3)},
+    [EMOTE_STRESSED] = {"stressed", POSE(0.88f, 0.24f, -0.28f, 0.20f, 0.27f, -0.06f, -0.38f, 0.28f, 0.00f, 0.82f, 0, 0, 2)},
+    [EMOTE_DETERMINED] = {"determined", POSE(0.68f, 0.28f, 0.00f, 0.05f, 0.34f, -0.24f, -0.52f, 0.04f, 0.00f, 0.84f, 0, 0, 0)},
+    [EMOTE_BORED] = {"bored", POSE(0.44f, 0.38f, 0.32f, -0.42f, 0.34f, -0.22f, -0.02f, 0.06f, 0.00f, 0.48f, 0, 0, 0)},
+    [EMOTE_PANICKED] = {"panicked", POSE(1.30f, 0.00f, -0.12f, -0.06f, 0.19f, 0.48f, -0.46f, 0.12f, 0.00f, 1.00f, 0, 0, 2)},
+    [EMOTE_SCHEMING] = {"scheming", POSE(0.52f, 0.34f, -0.48f, 0.08f, 0.30f, -0.28f, -0.44f, 0.18f, 0.00f, 0.86f, 0, 5, 0)},
+    [EMOTE_FATIGUED] = {"fatigued", POSE(0.38f, 0.42f, 0.00f, 0.42f, 0.40f, -0.28f, -0.18f, 0.30f, 0.00f, 0.42f, 0, 0, 4)},
+    [EMOTE_CONTENT] = {"content", POSE(0.58f, 0.26f, 0.00f, 0.12f, 0.40f, 0.12f, 0.04f, 0.02f, 0.00f, 0.58f, 0, 0, 0)},
+    [EMOTE_PLEADING] = {"pleading", POSE(1.08f, 0.02f, 0.00f, -0.12f, 0.78f, 0.40f, -0.42f, 0.05f, 0.00f, 0.82f, 0, 0, 1)},
+    [EMOTE_SICK] = {"sick", POSE(0.86f, 0.18f, -0.12f, 0.16f, 0.40f, -0.08f, -0.20f, 0.16f, 0.00f, 0.76f, 3, 3, 3)},
+    [EMOTE_HYPED] = {"hyped", POSE(1.26f, 0.00f, 0.00f, -0.05f, 0.72f, 0.48f, 0.00f, 0.06f, 0.00f, 1.00f, 1, 4, 0)},
+    [EMOTE_BAFFLED] = {"baffled", POSE(1.08f, 0.02f, 0.00f, 0.00f, 0.45f, 0.22f, 0.30f, 0.42f, 0.00f, 0.80f, 5, 0, 0)},
 };
 
 void emote_target_neutral(emote_target_t *target)
@@ -100,6 +117,7 @@ emote_pose_t emote_pose_for_affect_intensity(emote_affect_t affect, float intens
         .intensity = intensity,
         .pupil_shape = weight >= 0.55f ? authored.pupil_shape : neutral.pupil_shape,
         .palette = weight >= 0.55f ? authored.palette : neutral.palette,
+        .eye_effect = weight >= 0.55f ? authored.eye_effect : neutral.eye_effect,
     };
     return pose;
 }

@@ -262,7 +262,7 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
           <input type="range" id="sMouthConfidence" min="0" max="1" step="0.01" value="0.65"></div>
         <div class="ctl"><label for="sMouthUrgency">urgency</label><output id="oMouthUrgency">0.35</output>
           <input type="range" id="sMouthUrgency" min="0" max="1" step="0.01" value="0.35"></div>
-        <button type="button" class="blind-reset" id="mouthReel">Play 21-state mouth reel</button>
+        <button type="button" class="blind-reset" id="mouthReel">Play 38-state mouth reel</button>
         <div class="audit" id="mouthStatus" aria-live="polite">neutral · calm line · local breathing</div>
       </div>
     </section>
@@ -305,25 +305,25 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
         <div class="ctl"><label for="sGy">gaze y</label><output id="oGy">0.00</output>
           <input type="range" id="sGy" min="-1" max="1" step="0.01" value="0"></div>
         <div class="ctl"><label for="sOpen">openness</label><output id="oOpen">1.00</output>
-          <input type="range" id="sOpen" min="0" max="1.3" step="0.01" value="1"></div>
+          <input type="range" id="sOpen" min="0" max="1.35" step="0.01" value="1"></div>
         <div class="ctl"><label for="sPupil">pupil</label><output id="oPupil">0.42</output>
-          <input type="range" id="sPupil" min="0.15" max="0.8" step="0.01" value="0.42"></div>
+          <input type="range" id="sPupil" min="0.12" max="0.86" step="0.01" value="0.42"></div>
         <div class="ctl"><label for="sLidL">lower lid</label><output id="oLidL">0.00</output>
-          <input type="range" id="sLidL" min="0" max="0.4" step="0.01" value="0"></div>
+          <input type="range" id="sLidL" min="0" max="0.5" step="0.01" value="0"></div>
         <div class="ctl"><label for="sBrowY">brow height</label><output id="oBrowY">0.00</output>
-          <input type="range" id="sBrowY" min="-0.4" max="0.5" step="0.01" value="0"></div>
+          <input type="range" id="sBrowY" min="-0.5" max="0.6" step="0.01" value="0"></div>
         <div class="ctl"><label for="sBrowRot">brow angle</label><output id="oBrowRot">0.00</output>
-          <input type="range" id="sBrowRot" min="-0.45" max="0.35" step="0.01" value="0"></div>
+          <input type="range" id="sBrowRot" min="-0.6" max="0.5" step="0.01" value="0"></div>
         <div class="ctl"><label for="sAsym">asymmetry</label><output id="oAsym">0.02</output>
-          <input type="range" id="sAsym" min="-0.25" max="0.25" step="0.01" value="0.02"></div>
+          <input type="range" id="sAsym" min="-0.5" max="0.5" step="0.01" value="0.02"></div>
         <div class="ctl"><label for="sArc">arc morph</label><output id="oArc">0.00</output>
           <input type="range" id="sArc" min="0" max="1" step="0.01" value="0"></div>
         <div class="ctl"><label for="sInt">intensity</label><output id="oInt">0.70</output>
           <input type="range" id="sInt" min="0" max="1" step="0.01" value="0.7"></div>
         <div class="ctl"><label for="sShape">pupil shape</label>
-          <select id="sShape"><option value="0">circle</option><option value="1">star</option><option value="2">heart</option></select></div>
+          <select id="sShape"><option value="0">circle</option><option value="1">star</option><option value="2">heart</option><option value="3">spiral</option><option value="4">X</option><option value="5">mixed circle / X</option></select></div>
         <div class="ctl"><label for="sHue">iris palette</label>
-          <select id="sHue"><option value="0">default blue</option><option value="1">love pink</option><option value="2">error red</option><option value="3">success green</option></select></div>
+          <select id="sHue"><option value="0">default blue</option><option value="1">love pink</option><option value="2">error red</option><option value="3">success green</option><option value="4">hyped gold</option><option value="5">scheming violet</option></select></div>
       </div>
     </section>
 
@@ -419,7 +419,7 @@ body[data-view="blind"] #affectModule,body[data-view="blind"] #directModule{
     <div class="finding">
       <div class="f-num">FINDING 06</div>
       <h3>Mouths act, not label</h3>
-      <p>All twenty-one affects now select distinct lip geometry, aperture, asymmetry, inner-mouth detail,
+      <p>All thirty-eight affects now select distinct lip geometry, aperture, asymmetry, inner-mouth detail,
          and a restrained supporting accent. The emotion remains legible before a caption appears.</p>
     </div>
     <div class="finding">
@@ -485,31 +485,51 @@ var FONT={
  * Affect vocabulary. Each entry is a target pose, not a picture.
  * ------------------------------------------------------------------ */
 var STATES={
- neutral:     {open:1.00,lidL:0.00,gx:0,   gy:0,    pupil:0.42,browY:0.00,browRot: 0.00,asym:0.02,arc:0,intensity:0.70,pupilShape:0,hue:0,text:'HELLO!'},
- listening:   {open:1.06,lidL:0.00,gx:0,   gy:-0.06,pupil:0.46,browY:0.16,browRot: 0.02,asym:0.03,arc:0,intensity:0.74,pupilShape:0,hue:0,text:'LISTENING'},
- thinking:    {open:0.90,lidL:0.10,gx:-0.42,gy:-0.34,pupil:0.34,browY:0.08,browRot:-0.12,asym:0.13,arc:0,intensity:0.72,pupilShape:0,hue:0,text:'PLEASE WAIT'},
- working:     {open:0.94,lidL:0.06,gx:0.18,gy:-0.10,pupil:0.36,browY:0.02,browRot:-0.06,asym:0.03,arc:0,intensity:0.68,pupilShape:0,hue:0,text:'>>>'},
- happy:       {open:0.95,lidL:0.00,gx:0,   gy:0,    pupil:0.44,browY:0.20,browRot: 0.06,asym:0.03,arc:1,intensity:0.78,pupilShape:0,hue:0,text:'HEHEHE'},
- encouraging: {open:0.95,lidL:0.00,gx:0,   gy:0.04, pupil:0.44,browY:0.24,browRot: 0.08,asym:0.05,arc:1,intensity:0.82,pupilShape:0,hue:0,text:'GOOD JOB'},
- surprised:   {open:1.28,lidL:0.00,gx:0,   gy:-0.10,pupil:0.27,browY:0.46,browRot: 0.02,asym:0.02,arc:0,intensity:0.92,pupilShape:0,hue:0,text:'!!!'},
- excited:     {open:1.16,lidL:0.00,gx:0,   gy:-0.04,pupil:0.62,browY:0.40,browRot: 0.00,asym:0.08,arc:0,intensity:0.96,pupilShape:1,hue:0,text:'WOW'},
- love:        {open:1.02,lidL:0.00,gx:0,   gy:0.02, pupil:0.70,browY:0.22,browRot: 0.05,asym:0.03,arc:0,intensity:0.94,pupilShape:2,hue:1,text:'  '},
- playful:     {open:0.86,lidL:0.22,gx:0.46,gy:0.14, pupil:0.40,browY:0.10,browRot: 0.30,asym:0.20,arc:0,intensity:0.82,pupilShape:0,hue:0,text:'HEY YOU'},
- suspicious:  {open:0.55,lidL:0.34,gx:-0.72,gy:0.08,pupil:0.28,browY:-0.22,browRot:-0.30,asym:0.25,arc:0,intensity:0.84,pupilShape:0,hue:0,text:'HMMM'},
- sad:         {open:0.78,lidL:0.14,gx:0,   gy:0.34, pupil:0.52,browY:-0.02,browRot:-0.34,asym:0.04,arc:0,intensity:0.65,pupilShape:0,hue:0,text:'OOPS'},
- speaking:    {open:1.00,lidL:0.02,gx:0,   gy:-0.02,pupil:0.43,browY:0.12,browRot: 0.03,asym:0.04,arc:0.10,intensity:0.78,pupilShape:0,hue:0,text:'TALKING'},
- error:       {open:0.70,lidL:0.24,gx:0,   gy:0,    pupil:0.26,browY:-0.24,browRot:-0.42,asym:0.01,arc:0,intensity:0.92,pupilShape:0,hue:2,text:'ERROR'},
- success:     {open:0.98,lidL:0.02,gx:0,   gy:0,    pupil:0.44,browY:0.26,browRot: 0.07,asym:0.04,arc:1,intensity:0.88,pupilShape:0,hue:3,text:'DONE'},
- curious:     {open:1.02,lidL:0.02,gx:0.28,gy:-0.12,pupil:0.50,browY:0.24,browRot: 0.20,asym:0.18,arc:0,intensity:0.74,pupilShape:0,hue:0,text:'? '},
- uncertain:   {open:0.84,lidL:0.12,gx:-0.34,gy:0.22,pupil:0.39,browY:0.06,browRot:-0.24,asym:0.22,arc:0,intensity:0.62,pupilShape:0,hue:0,text:'UM...'},
- concerned:   {open:0.88,lidL:0.10,gx:-0.08,gy:0.18,pupil:0.46,browY:0.10,browRot:-0.38,asym:0.08,arc:0,intensity:0.68,pupilShape:0,hue:0,text:'YOU OK?'},
- delighted:   {open:0.84,lidL:0.00,gx:0,   gy:0.02,pupil:0.54,browY:0.28,browRot: 0.10,asym:0.06,arc:0.88,intensity:0.72,pupilShape:0,hue:0,text:'NICE'},
- embarrassed: {open:0.72,lidL:0.16,gx:0.46,gy:0.34,pupil:0.48,browY:0.04,browRot:-0.22,asym:0.16,arc:0.16,intensity:0.66,pupilShape:0,hue:1,text:'OH...'},
-  reassuring:  {open:0.96,lidL:0.04,gx:0,   gy:0.06,pupil:0.48,browY:0.16,browRot: 0.12,asym:0.05,arc:0.48,intensity:0.70,pupilShape:0,hue:0,text:'I GOT YOU'}
+ neutral:     {open:1.00,lidL:0.00,gx:0,   gy:0,    pupil:0.42,browY:0.00,browRot: 0.00,asym:0.02,arc:0,intensity:0.70,pupilShape:0,hue:0,effect:0,text:'HELLO!'},
+ listening:   {open:1.06,lidL:0.00,gx:0,   gy:-0.06,pupil:0.46,browY:0.16,browRot: 0.02,asym:0.03,arc:0,intensity:0.74,pupilShape:0,hue:0,effect:0,text:'LISTENING'},
+ thinking:    {open:0.90,lidL:0.10,gx:-0.42,gy:-0.34,pupil:0.34,browY:0.08,browRot:-0.12,asym:0.13,arc:0,intensity:0.72,pupilShape:0,hue:0,effect:0,text:'PLEASE WAIT'},
+ working:     {open:0.94,lidL:0.06,gx:0.18,gy:-0.10,pupil:0.36,browY:0.02,browRot:-0.06,asym:0.03,arc:0,intensity:0.68,pupilShape:0,hue:0,effect:0,text:'>>>'},
+ happy:       {open:0.95,lidL:0.00,gx:0,   gy:0,    pupil:0.44,browY:0.20,browRot: 0.06,asym:0.03,arc:1,intensity:0.78,pupilShape:0,hue:0,effect:0,text:'HEHEHE'},
+ encouraging: {open:0.95,lidL:0.00,gx:0,   gy:0.04, pupil:0.44,browY:0.24,browRot: 0.08,asym:0.05,arc:1,intensity:0.82,pupilShape:0,hue:0,effect:0,text:'GOOD JOB'},
+ surprised:   {open:1.28,lidL:0.00,gx:0,   gy:-0.10,pupil:0.27,browY:0.46,browRot: 0.02,asym:0.02,arc:0,intensity:0.92,pupilShape:0,hue:0,effect:0,text:'!!!'},
+ excited:     {open:1.16,lidL:0.00,gx:0,   gy:-0.04,pupil:0.62,browY:0.40,browRot: 0.00,asym:0.08,arc:0,intensity:0.96,pupilShape:1,hue:0,effect:0,text:'WOW'},
+ love:        {open:1.02,lidL:0.00,gx:0,   gy:0.02, pupil:0.70,browY:0.22,browRot: 0.05,asym:0.03,arc:0,intensity:0.94,pupilShape:2,hue:1,effect:0,text:'  '},
+ playful:     {open:0.86,lidL:0.22,gx:0.46,gy:0.14, pupil:0.40,browY:0.10,browRot: 0.30,asym:0.20,arc:0,intensity:0.82,pupilShape:0,hue:0,effect:0,text:'HEY YOU'},
+ suspicious:  {open:0.55,lidL:0.34,gx:-0.72,gy:0.08,pupil:0.28,browY:-0.22,browRot:-0.30,asym:0.25,arc:0,intensity:0.84,pupilShape:0,hue:0,effect:0,text:'HMMM'},
+ sad:         {open:0.78,lidL:0.14,gx:0,   gy:0.34, pupil:0.52,browY:-0.02,browRot:-0.34,asym:0.04,arc:0,intensity:0.65,pupilShape:0,hue:0,effect:0,text:'OOPS'},
+ speaking:    {open:1.00,lidL:0.02,gx:0,   gy:-0.02,pupil:0.43,browY:0.12,browRot: 0.03,asym:0.04,arc:0.10,intensity:0.78,pupilShape:0,hue:0,effect:0,text:'TALKING'},
+ error:       {open:0.70,lidL:0.24,gx:0,   gy:0,    pupil:0.26,browY:-0.24,browRot:-0.42,asym:0.01,arc:0,intensity:0.92,pupilShape:0,hue:2,effect:0,text:'ERROR'},
+ success:     {open:0.98,lidL:0.02,gx:0,   gy:0,    pupil:0.44,browY:0.26,browRot: 0.07,asym:0.04,arc:1,intensity:0.88,pupilShape:0,hue:3,effect:0,text:'DONE'},
+ curious:     {open:1.02,lidL:0.02,gx:0.28,gy:-0.12,pupil:0.50,browY:0.24,browRot: 0.20,asym:0.18,arc:0,intensity:0.74,pupilShape:0,hue:0,effect:0,text:'?'},
+ uncertain:   {open:0.84,lidL:0.12,gx:-0.34,gy:0.22,pupil:0.39,browY:0.06,browRot:-0.24,asym:0.22,arc:0,intensity:0.62,pupilShape:0,hue:0,effect:0,text:'UM...'},
+ concerned:   {open:0.88,lidL:0.10,gx:-0.08,gy:0.18,pupil:0.46,browY:0.10,browRot:-0.38,asym:0.08,arc:0,intensity:0.68,pupilShape:0,hue:0,effect:0,text:'YOU OK?'},
+ delighted:   {open:0.84,lidL:0.00,gx:0,   gy:0.02,pupil:0.54,browY:0.28,browRot: 0.10,asym:0.06,arc:0.88,intensity:0.72,pupilShape:0,hue:0,effect:0,text:'NICE'},
+ embarrassed: {open:0.72,lidL:0.16,gx:0.46,gy:0.34,pupil:0.48,browY:0.04,browRot:-0.22,asym:0.16,arc:0.16,intensity:0.66,pupilShape:0,hue:1,effect:0,text:'OH...'},
+ reassuring:  {open:0.96,lidL:0.04,gx:0,   gy:0.06,pupil:0.48,browY:0.16,browRot: 0.12,asym:0.05,arc:0.48,intensity:0.70,pupilShape:0,hue:0,effect:0,text:'I GOT YOU'},
+ shocked:     {open:1.34,lidL:0.00,gx:0,   gy:-0.12,pupil:0.20,browY:0.55,browRot: 0.02,asym:0.04,arc:0,intensity:0.98,pupilShape:0,hue:0,effect:0,text:'WHOA!'},
+ weary:       {open:0.54,lidL:0.32,gx:-0.18,gy:0.32,pupil:0.34,browY:-0.12,browRot:-0.30,asym:0.12,arc:0,intensity:0.60,pupilShape:0,hue:0,effect:4,text:'WHEW...'},
+ confused:    {open:0.98,lidL:0.06,gx:-0.30,gy:0.10,pupil:0.38,browY:0.10,browRot: 0.28,asym:0.34,arc:0,intensity:0.72,pupilShape:3,hue:5,effect:0,text:'HUH?'},
+ blushing:    {open:0.90,lidL:0.10,gx:0.38,gy:0.24,pupil:0.58,browY:0.12,browRot:-0.16,asym:0.16,arc:0,intensity:0.76,pupilShape:2,hue:1,effect:5,text:'AW...'},
+ nervous:     {open:1.15,lidL:0.04,gx:0.18,gy:0.12,pupil:0.23,browY:0.36,browRot:-0.42,asym:0.12,arc:0,intensity:0.84,pupilShape:0,hue:0,effect:2,text:'UH...'},
+ maniacal:    {open:1.20,lidL:0.00,gx:0.12,gy:0.06,pupil:0.22,browY:-0.22,browRot:-0.50,asym:0.18,arc:0,intensity:0.98,pupilShape:0,hue:2,effect:3,text:'MWAHAHA'},
+ stressed:    {open:0.88,lidL:0.24,gx:-0.28,gy:0.20,pupil:0.27,browY:-0.06,browRot:-0.38,asym:0.28,arc:0,intensity:0.82,pupilShape:0,hue:0,effect:2,text:'TOO MUCH'},
+ determined:  {open:0.68,lidL:0.28,gx:0,   gy:0.05,pupil:0.34,browY:-0.24,browRot:-0.52,asym:0.04,arc:0,intensity:0.84,pupilShape:0,hue:0,effect:0,text:'LET US GO'},
+ bored:       {open:0.44,lidL:0.38,gx:0.32,gy:-0.42,pupil:0.34,browY:-0.22,browRot:-0.02,asym:0.06,arc:0,intensity:0.48,pupilShape:0,hue:0,effect:0,text:'...'},
+ panicked:    {open:1.30,lidL:0.00,gx:-0.12,gy:-0.06,pupil:0.19,browY:0.48,browRot:-0.46,asym:0.12,arc:0,intensity:1.00,pupilShape:0,hue:0,effect:2,text:'OH NO!'},
+ scheming:    {open:0.52,lidL:0.34,gx:-0.48,gy:0.08,pupil:0.30,browY:-0.28,browRot:-0.44,asym:0.18,arc:0,intensity:0.86,pupilShape:0,hue:5,effect:0,text:'HEH HEH'},
+ fatigued:    {open:0.38,lidL:0.42,gx:0,   gy:0.42,pupil:0.40,browY:-0.28,browRot:-0.18,asym:0.30,arc:0,intensity:0.42,pupilShape:0,hue:0,effect:4,text:'SO TIRED'},
+ content:     {open:0.58,lidL:0.26,gx:0,   gy:0.12,pupil:0.40,browY:0.12,browRot: 0.04,asym:0.02,arc:0,intensity:0.58,pupilShape:0,hue:0,effect:0,text:'NICE'},
+ pleading:    {open:1.08,lidL:0.02,gx:0,   gy:-0.12,pupil:0.78,browY:0.40,browRot:-0.42,asym:0.05,arc:0,intensity:0.82,pupilShape:0,hue:0,effect:1,text:'PLEASE?'},
+ sick:        {open:0.86,lidL:0.18,gx:-0.12,gy:0.16,pupil:0.40,browY:-0.08,browRot:-0.20,asym:0.16,arc:0,intensity:0.76,pupilShape:3,hue:3,effect:3,text:'BLEGH'},
+ hyped:       {open:1.26,lidL:0.00,gx:0,   gy:-0.05,pupil:0.72,browY:0.48,browRot: 0.00,asym:0.06,arc:0,intensity:1.00,pupilShape:1,hue:4,effect:0,text:'LET US GO!'},
+ baffled:     {open:1.08,lidL:0.02,gx:0,   gy:0,    pupil:0.45,browY:0.22,browRot: 0.30,asym:0.42,arc:0,intensity:0.80,pupilShape:5,hue:0,effect:0,text:'...WHY?'}
 };
 var ORDER=['neutral','listening','thinking','working','happy','encouraging','surprised',
            'excited','love','playful','suspicious','sad','speaking','error','success',
-           'curious','uncertain','concerned','delighted','embarrassed','reassuring'];
+           'curious','uncertain','concerned','delighted','embarrassed','reassuring',
+           'shocked','weary','confused','blushing','nervous','maniacal','stressed',
+           'determined','bored','panicked','scheming','fatigued','content','pleading',
+           'sick','hyped','baffled'];
 var CORE=['neutral','thinking','happy','surprised','suspicious','error'];
 var BEATS={
   attention:{state:'listening',text:'HEY YOU!',hold:1700},
@@ -543,7 +563,7 @@ var blind={target:null,last:null,locked:false,timer:null,scores:loadBlindScores(
 /* ------------------------------------------------------------------ *
  * Live state: every field is spring-driven toward the pose above.
  * ------------------------------------------------------------------ */
-var S={open:1,lidL:0,gx:0,gy:0,pupil:0.42,browY:0,browRot:0,asym:0.02,arc:0,shape:0,hue:0,intensity:0.7};
+var S={open:1,lidL:0,gx:0,gy:0,pupil:0.42,browY:0,browRot:0,asym:0.02,arc:0,shape:0,hue:0,effect:0,intensity:0.7};
 var V={open:0,lidL:0,gx:0,gy:0,pupil:0,browY:0,browRot:0,asym:0,arc:0,shape:0,hue:0};
 var T=Object.assign({},STATES.neutral);
 var current='neutral';
@@ -600,7 +620,24 @@ var MOUTH_POSES={
   embarrassed:{width:.44,open:.04,curve:.28,skew:.30,roundness:.72,teeth:0,tongue:0,deco:'blush',label:'sheepish smile'},
   love:{width:.24,open:.20,curve:0,skew:0,roundness:1.28,teeth:0,tongue:0,deco:'heart',label:'heart-kiss'},
   error:{width:.52,open:.02,curve:-.10,skew:0,roundness:.68,teeth:0,tongue:0,deco:'alert',label:'tense zigzag'},
-  speaking:{width:.56,open:.42,curve:.08,skew:0,roundness:.78,teeth:.10,tongue:.20,deco:'none',label:'animated visemes'}
+  speaking:{width:.56,open:.42,curve:.08,skew:0,roundness:.78,teeth:.10,tongue:.20,deco:'none',label:'animated visemes'},
+  shocked:{width:.40,open:1.00,curve:-.04,skew:0,roundness:1.30,teeth:0,tongue:.08,deco:'alert',label:'electric gasp'},
+  weary:{width:.50,open:.025,curve:-.42,skew:.08,roundness:.76,teeth:0,tongue:0,deco:'tear',label:'heavy droop'},
+  confused:{width:.46,open:.035,curve:-.06,skew:.52,roundness:.78,teeth:0,tongue:0,deco:'question',label:'crooked question'},
+  blushing:{width:.44,open:.055,curve:.34,skew:.18,roundness:.74,teeth:0,tongue:0,deco:'blush',label:'bashful smile'},
+  nervous:{width:.31,open:.34,curve:-.12,skew:-.10,roundness:1.20,teeth:0,tongue:0,deco:'sweat',label:'nervous little o'},
+  maniacal:{width:.72,open:.52,curve:.30,skew:.12,roundness:.50,teeth:.78,tongue:.08,deco:'alert',label:'wild toothy grin'},
+  stressed:{width:.56,open:.07,curve:-.30,skew:-.24,roundness:.68,teeth:0,tongue:0,deco:'alert',label:'strained grimace'},
+  determined:{width:.58,open:.035,curve:.10,skew:-.12,roundness:.62,teeth:0,tongue:0,deco:'none',label:'set jaw'},
+  bored:{width:.40,open:.012,curve:-.02,skew:.04,roundness:.68,teeth:0,tongue:0,deco:'none',label:'flat boredom'},
+  panicked:{width:.50,open:.88,curve:-.18,skew:.06,roundness:.92,teeth:.12,tongue:.05,deco:'sweat',label:'adorable panic'},
+  scheming:{width:.62,open:.18,curve:.46,skew:.56,roundness:.58,teeth:.40,tongue:0,deco:'sparkle',label:'scheming grin'},
+  fatigued:{width:.48,open:.02,curve:-.50,skew:-.10,roundness:.78,teeth:0,tongue:0,deco:'tear',label:'exhausted sag'},
+  content:{width:.50,open:.025,curve:.42,skew:0,roundness:.78,teeth:0,tongue:0,deco:'none',label:'quiet contentment'},
+  pleading:{width:.46,open:.09,curve:-.24,skew:0,roundness:.88,teeth:0,tongue:0,deco:'tear',label:'tiny pleading frown'},
+  sick:{width:.52,open:.08,curve:-.40,skew:.20,roundness:.66,teeth:0,tongue:.42,deco:'sick',label:'queasy blegh'},
+  hyped:{width:.74,open:.64,curve:.74,skew:0,roundness:.55,teeth:.54,tongue:.16,deco:'sparkle',label:'maximum-volume grin'},
+  baffled:{width:.42,open:.045,curve:-.08,skew:-.50,roundness:.80,teeth:0,tongue:0,deco:'question',label:'the huh'}
 };
 var mouthControl={state:'linked',intensity:.70,reel:null,reelIndex:0};
 var mouthMotion={state:'neutral',changedAt:performance.now(),lastAt:performance.now(),
@@ -619,6 +656,12 @@ function spring(cur,vel,target,omega,dt){
   return [target+stepped*decay,(slope-omega*stepped)*decay];
 }
 function sstep(e0,e1,x){var t=clamp((x-e0)/(e1-e0),0,1);return t*t*(3-2*t);}
+function sdSegment(px,py,ax,ay,bx,by){
+  var vx=bx-ax,vy=by-ay,wx=px-ax,wy=py-ay,den=vx*vx+vy*vy;
+  var t=den?clamp((wx*vx+wy*vy)/den,0,1):0;
+  var dx=px-(ax+vx*t),dy=py-(ay+vy*t);
+  return Math.sqrt(dx*dx+dy*dy);
+}
 function attentionDecay(now){
   if(!UI.auto || current!=='neutral') return 0;
   return sstep(0,1,(now-stateStartedAt-ATTENTION_DECAY_PROFILE.startMs)/ATTENTION_DECAY_PROFILE.durationMs);
@@ -630,7 +673,7 @@ function poseAtIntensity(name,intensity){
   var pose=Object.assign({},base);
   POSE_FIELDS.forEach(function(k){pose[k]=mix(neutral[k],base[k],weight);});
   pose.intensity=value;
-  if(weight<0.55){pose.pupilShape=neutral.pupilShape;pose.hue=neutral.hue;}
+  if(weight<0.55){pose.pupilShape=neutral.pupilShape;pose.hue=neutral.hue;pose.effect=neutral.effect;}
   return pose;
 }
 function targetValue(k){return k==='shape'?T.pupilShape:(T[k]===undefined?0:T[k]);}
@@ -711,7 +754,9 @@ var PAL={
 var HUES=[ null,
   {irisOut:[122,20,74], irisIn:[236,88,158], limbal:[60,8,38]},   /* love    */
   {irisOut:[112,26,26], irisIn:[228,86,74],  limbal:[54,10,10]},  /* error   */
-  {irisOut:[20,88,60],  irisIn:[86,214,150], limbal:[8,40,28]}    /* success */
+  {irisOut:[20,88,60],  irisIn:[86,214,150], limbal:[8,40,28]},   /* success */
+  {irisOut:[112,70,10], irisIn:[255,210,78], limbal:[48,26,2]},   /* hyped   */
+  {irisOut:[66,28,104], irisIn:[202,128,255],limbal:[28,8,48]}    /* confused */
 ];
 function boundedProfile(input){
   var appearance=input&&input.appearance?input.appearance:(input||{});
@@ -803,9 +848,21 @@ function expressivePose(isLeft){
     pose.open=clamp(pose.open-0.055*relief,0.02,1.30);
     pose.arc=clamp(pose.arc+0.08*relief,0,1);
     pose.pupil=clamp(pose.pupil+0.020*relief,0.12,0.86);
-  }else if(current==='uncertain'||current==='concerned'||current==='embarrassed'){
+  }else if(current==='uncertain'||current==='concerned'||current==='embarrassed'||current==='blushing'){
     var aversion=Math.sin(elapsed/1000*1.7);
     pose.gx+=aversion*0.018; pose.gy+=Math.abs(aversion)*0.010;
+  }else if(current==='confused'||current==='baffled'){
+    var puzzled=Math.sin(elapsed/370);
+    pose.gx+=puzzled*0.026;pose.browRot+=Math.sin(elapsed/510)*0.025;
+  }else if(current==='nervous'||current==='stressed'||current==='panicked'){
+    var tremble=Math.sin(elapsed/48)*(0.008+semanticModifiers.urgency*0.012);
+    pose.gx+=tremble;pose.gy-=tremble*.55;pose.open=clamp(pose.open+Math.abs(tremble),0.02,1.35);
+  }else if(current==='maniacal'||current==='hyped'){
+    pose.pupil=clamp(pose.pupil+Math.sin(elapsed/85)*0.025,0.12,0.86);
+  }else if(current==='pleading'){
+    pose.pupil=clamp(pose.pupil+Math.sin(elapsed/420)*0.018,0.12,0.86);
+  }else if(current==='weary'||current==='fatigued'||current==='bored'){
+    pose.gy+=Math.abs(Math.sin(elapsed/1500))*0.012;
   }else if(current==='reassuring'){
     pose.pupil=clamp(pose.pupil+Math.sin(elapsed/1000*1.1)*0.012,0.12,0.86);
   }
@@ -851,6 +908,8 @@ function renderEye(buf, isLeft){
   var iy = cy + gy*24 + curveY;
   if(UI.legacy){ ix=Math.round(ix); iy=Math.round(iy); }
   var pupR = irisR*clamp(P.pupil + (UI.view==='live'?breathe*0.02:0), 0.12, 0.86);
+  var pupilShape=Math.round(P.shape);
+  if(pupilShape===5) pupilShape=isLeft?0:4;
   var limR = irisR - 5;
 
   /* dual specular — offsets are iris-local so they track gaze */
@@ -880,7 +939,7 @@ function renderEye(buf, isLeft){
     var dyE=(y-cy)/RY;
     /* --- span culling: analytic x-extent of the ellipse on this row --- */
     var x0=0, x1=EW;
-    if(UI.span){
+    if(UI.span && !P.effect){
       var q=1-dyE*dyE;
       if(q<=0 && !(UI.brows && y>browCY-40 && y<browCY+40)){
         /* fully outside: flat fill the row */
@@ -959,27 +1018,38 @@ function renderEye(buf, isLeft){
             }
             sr=mix(sr,ir,aIris); sg=mix(sg,ig,aIris); sb=mix(sb,ib,aIris);
 
-            /* ---- 5. pupil: circle, star or heart ---- */
+            /* ---- 5. pupil: circle, star, heart, spiral, X, or mixed pair ---- */
             var dP;
-            if(P.shape<0.5){
+            if(pupilShape===0){
               dP=dr-pupR;
-            } else if(P.shape<1.5){
+            } else if(pupilShape===1){
               var ang=Math.atan2(idy,idxIso);
               var star=pupR*(0.74+0.40*Math.cos(5*ang-1.5708));
               dP=(dr-star)*0.62;
-            } else {
+            } else if(pupilShape===2){
               var hxp=idxIso/(pupR*1.06), hyp=(idy-pupR*0.16)/(pupR*1.06);
-              var hq=hxp*hxp+hyp*hyp*1.15;
               var lobe=Math.min(
                 Math.sqrt((hxp-0.42)*(hxp-0.42)+(hyp+0.34)*(hyp+0.34))-0.52,
                 Math.sqrt((hxp+0.42)*(hxp+0.42)+(hyp+0.34)*(hyp+0.34))-0.52);
               var tri=Math.max(Math.abs(hxp)*0.86+hyp*0.5-0.44, hyp-0.92);
               dP=Math.min(lobe,tri)*pupR;
+            } else if(pupilShape===3){
+              dP=dr-pupR;
+            } else {
+              dP=Math.max(Math.abs(Math.abs(idxIso)-Math.abs(idy))-pupR*.23,dr-pupR);
             }
             var aP=cov(dP)*(1-P.arc);
             if(aP>0){
-              var pc = P.shape>1.5 ? [252,232,240] : PAL.pupil;
+              var pc=pupilShape===1?[255,226,112]:pupilShape===2?[252,232,240]:
+                pupilShape===3?[226,214,255]:pupilShape===4?[238,244,255]:PAL.pupil;
               sr=mix(sr,pc[0],aP); sg=mix(sg,pc[1],aP); sb=mix(sb,pc[2],aP);
+            }
+            if(pupilShape===3 && dr<pupR*.92){
+              var spiralAngle=(Math.atan2(idy,idxIso)+Math.PI)/(Math.PI*2);
+              var spiralPhase=dr/pupR*2.2-spiralAngle;
+              var spiralDistance=Math.abs(spiralPhase-Math.round(spiralPhase))*pupR*.52;
+              var aSpiral=cov(spiralDistance-1.8)*(1-P.arc);
+              sr=mix(sr,PAL.pupil[0],aSpiral);sg=mix(sg,PAL.pupil[1],aSpiral);sb=mix(sb,PAL.pupil[2],aSpiral);
             }
           }
 
@@ -1033,6 +1103,30 @@ function renderEye(buf, isLeft){
         var aB=cov(dBrow);
         if(aB>0){ r=mix(r,PAL.brow[0],aB); g=mix(g,PAL.brow[1],aB); b=mix(b,PAL.brow[2],aB); }
       }
+
+      /* ---- 9. restrained concept-art accents ---- */
+      var effect=Math.round(P.effect||0),dFx=1e6,fxColor=null;
+      if(effect===1){
+        var tearX=cx+(isLeft?RX*.66:-RX*.66),tearY=cy+RY*.68;
+        dFx=Math.sqrt(Math.pow((x-tearX)/10,2)+Math.pow((y-tearY)/18,2))-1;fxColor=[112,211,255];
+      }else if(effect===2&&!isLeft){
+        var sweatX=cx+RX*.78,sweatY=cy-RY*.76;
+        dFx=Math.sqrt(Math.pow((x-sweatX)/12,2)+Math.pow((y-sweatY)/20,2))-1;fxColor=[134,220,255];
+      }else if(effect===3){
+        var veinX=cx+(isLeft?-RX*.74:RX*.74),veinEnd=cx+(isLeft?-RX*.34:RX*.34);
+        dFx=Math.min(sdSegment(x,y,veinX,cy-RY*.20,veinEnd,cy-RY*.08),
+                     sdSegment(x,y,veinX,cy+RY*.22,veinEnd,cy+RY*.10))-3;fxColor=[225,76,88];
+      }else if(effect===4){
+        dFx=Math.min(sdSegment(x,y,cx-RX*.52,cy+RY*.76,cx+RX*.52,cy+RY*.81),
+                     sdSegment(x,y,cx-RX*.34,cy+RY*.90,cx+RX*.34,cy+RY*.93))-3;fxColor=[92,116,150];
+      }else if(effect===5){
+        var blushY=cy+RY*.78;
+        dFx=Math.min(sdSegment(x,y,cx-35,blushY+7,cx-25,blushY-7),
+                     sdSegment(x,y,cx-5,blushY+7,cx+5,blushY-7),
+                     sdSegment(x,y,cx+25,blushY+7,cx+35,blushY-7))-3;fxColor=[247,105,166];
+      }
+      var aFx=cov(dFx);
+      if(aFx>0&&fxColor){r=mix(r,fxColor[0],aFx);g=mix(g,fxColor[1],aFx);b=mix(b,fxColor[2],aFx);}
 
       buf[o]=r; buf[o+1]=g; buf[o+2]=b; buf[o+3]=255;
     }
@@ -1280,9 +1374,17 @@ function drawMouthSparkle(x,y,size,color){
   mCtx.moveTo(x-size*.62,y-size*.62);mCtx.lineTo(x+size*.62,y+size*.62);
   mCtx.moveTo(x+size*.62,y-size*.62);mCtx.lineTo(x-size*.62,y+size*.62);mCtx.stroke();mCtx.restore();
 }
+function mouthAccentFor(state){
+  if(state==='sick') return '#67dc8f';
+  if(state==='maniacal'||state==='panicked'||state==='stressed') return '#ff6675';
+  if(state==='hyped') return '#ffd05b';
+  if(state==='confused'||state==='baffled'||state==='scheming') return '#c983ff';
+  if(state==='blushing'||state==='pleading') return '#ff78ad';
+  return PROFILE_ACCENTS[profileStyle.accent];
+}
 function drawMouthDecorations(p,cx,cy,now){
   if(p.deco==='none') return;
-  var accent=PROFILE_ACCENTS[profileStyle.accent],pulse=.5+.5*Math.sin(now/(135-semanticModifiers.urgency*35));
+  var accent=mouthAccentFor(p.state),pulse=.5+.5*Math.sin(now/(135-semanticModifiers.urgency*35));
   mCtx.save();mCtx.strokeStyle=accent;mCtx.fillStyle=accent;mCtx.shadowColor=accent;mCtx.shadowBlur=18;mCtx.lineCap='round';
   if(p.deco==='thought'){
     [ [cx+85,cy-88,6],[cx+107,cy-110,9],[cx+137,cy-135,12+pulse*3] ].forEach(function(v){mCtx.globalAlpha=.42+(v[2]/18);mCtx.beginPath();mCtx.arc(v[0],v[1],v[2],0,Math.PI*2);mCtx.fill();});
@@ -1298,19 +1400,25 @@ function drawMouthDecorations(p,cx,cy,now){
     }});
   }else if(p.deco==='sweat'){
     var x=cx+121,y=cy-112+pulse*4;mCtx.beginPath();mCtx.moveTo(x,y-22);mCtx.bezierCurveTo(x-25,y+9,x-18,y+30,x,y+30);mCtx.bezierCurveTo(x+18,y+30,x+25,y+9,x,y-22);mCtx.fill();
+  }else if(p.deco==='tear'){
+    var tx=cx-112,ty=cy-70+pulse*4;mCtx.globalAlpha=.86;mCtx.beginPath();mCtx.moveTo(tx,ty-18);mCtx.bezierCurveTo(tx-20,ty+7,tx-14,ty+26,tx,ty+26);mCtx.bezierCurveTo(tx+14,ty+26,tx+20,ty+7,tx,ty-18);mCtx.fill();
+  }else if(p.deco==='question'){
+    mCtx.globalAlpha=.88;mCtx.font='700 76px system-ui';mCtx.textAlign='center';mCtx.textBaseline='middle';mCtx.fillText('?',cx+125,cy-96-pulse*4);
+  }else if(p.deco==='sick'){
+    mCtx.globalAlpha=.78;[[cx+120,cy-92,13],[cx+145,cy-119,8],[cx-132,cy+74,7]].forEach(function(v){mCtx.beginPath();mCtx.arc(v[0],v[1],v[2]+pulse*2,0,Math.PI*2);mCtx.stroke();});
   }else if(p.deco==='alert'){
     mCtx.globalAlpha=.78;mCtx.lineWidth=8;[-1,1].forEach(function(side){var x=cx+side*142;mCtx.beginPath();mCtx.moveTo(x,cy-76);mCtx.lineTo(x-side*16,cy-52);mCtx.lineTo(x+side*5,cy-50);mCtx.lineTo(x-side*11,cy-25);mCtx.stroke();});
   }
   mCtx.restore();
 }
 function drawClosedAmoledMouth(p,cx,cy,now){
-  var accent=PROFILE_ACCENTS[profileStyle.accent],half=mCv.width*.5*p.width,line=profileStyle.mouthStyle==='minimal'?10:16;
+  var accent=mouthAccentFor(p.state),half=mCv.width*.5*p.width,line=profileStyle.mouthStyle==='minimal'?10:16;
   mCtx.save();mCtx.translate(cx,cy);mCtx.lineCap='round';mCtx.lineJoin='round';mCtx.strokeStyle=accent;mCtx.lineWidth=line;
   mCtx.shadowColor=accent;mCtx.shadowBlur=profileStyle.mouthStyle==='minimal'?12:30;mCtx.beginPath();
-  if(p.state==='error'){
+  if(p.state==='error'||p.state==='stressed'){
     var jitter=Math.sin(now/58)*(1+semanticModifiers.urgency*2);
     mCtx.moveTo(-half,jitter);mCtx.lineTo(-half*.5,-13+jitter);mCtx.lineTo(0,10+jitter);mCtx.lineTo(half*.5,-13+jitter);mCtx.lineTo(half,jitter);
-  }else if(p.state==='uncertain'){
+  }else if(p.state==='uncertain'||p.state==='confused'||p.state==='baffled'){
     var wobble=Math.sin(now/68)*3;
     mCtx.moveTo(-half,p.skew*18+wobble);mCtx.quadraticCurveTo(-half*.52,-11-wobble,-half*.08,2+wobble);
     mCtx.quadraticCurveTo(half*.42,15-wobble,half,-p.skew*18+wobble);
@@ -1324,7 +1432,7 @@ function drawClosedAmoledMouth(p,cx,cy,now){
   mCtx.restore();
 }
 function drawOpenAmoledMouth(p,cx,cy){
-  var accent=PROFILE_ACCENTS[profileStyle.accent],built=mouthPath(p,cx,cy),path=built.path;
+  var accent=mouthAccentFor(p.state),built=mouthPath(p,cx,cy),path=built.path;
   mCtx.save();mCtx.shadowColor=accent;mCtx.shadowBlur=32;mCtx.strokeStyle=accent;
   mCtx.lineWidth=profileStyle.mouthStyle==='minimal'?10:16;
   var cavity=mCtx.createRadialGradient(cx,cy-built.halfGap*.25,8,cx,cy,built.halfWidth*.9);
@@ -1356,8 +1464,9 @@ function drawAmoledMouth(){
   if(UI.mouthMode==='utterance'){drawAmoledCaption();mCtx.restore();return;}
   var now=performance.now(),p=updateMouthMotion(now),life=Math.sin(now/(980-profileStyle.defaultEnergy*260));
   cy+=life*(1.2+profileStyle.defaultEnergy*2.6);
-  if(p.state==='uncertain') cy+=Math.sin(now/68)*2.2;
-  if(p.state==='delighted'||p.state==='excited'||p.state==='success') cy-=Math.abs(Math.sin(now/210))*(1+profileStyle.defaultEnergy*2);
+  if(p.state==='uncertain'||p.state==='confused'||p.state==='baffled') cy+=Math.sin(now/68)*2.2;
+  if(p.state==='nervous'||p.state==='stressed'||p.state==='panicked') cy+=Math.sin(now/43)*(1+semanticModifiers.urgency*2.4);
+  if(p.state==='delighted'||p.state==='excited'||p.state==='success'||p.state==='hyped') cy-=Math.abs(Math.sin(now/210))*(1+profileStyle.defaultEnergy*2);
   if(p.open>.085) drawOpenAmoledMouth(p,cx,cy); else drawClosedAmoledMouth(p,cx,cy,now);
   drawMouthDecorations(p,cx,cy,now);
   var status=document.getElementById('mouthStatus');
@@ -1486,6 +1595,7 @@ function frame(now){
   var c=spring(S.gy,V.gy,tgy,CHANNELS.gaze.omega,dt); S.gy=c[0]; V.gy=c[1];
   var d=spring(S.shape,V.shape,desiredValue('shape',now),13,dt); S.shape=d[0]; V.shape=d[1];
   var e=spring(S.hue,V.hue,desiredValue('hue',now),13,dt); S.hue=e[0]; V.hue=e[1];
+  S.effect=now-transition.start>=transition.reaction+CHANNELS.brows.delay?(T.effect||0):(transition.from.effect||0);
   updateSettles(now);
   trackIdleAudit(dt);
 
@@ -1533,7 +1643,7 @@ ORDER.forEach(function(name){
 });
 function stopMouthReel(){
   if(mouthControl.reel){clearTimeout(mouthControl.reel);mouthControl.reel=null;}
-  mouthControl.reelIndex=0;document.getElementById('mouthReel').textContent='Play 21-state mouth reel';
+  mouthControl.reelIndex=0;document.getElementById('mouthReel').textContent='Play 38-state mouth reel';
 }
 function runMouthReel(){
   stopMouthReel();mouthControl.state=ORDER[0];mouthAffect.value=mouthControl.state;

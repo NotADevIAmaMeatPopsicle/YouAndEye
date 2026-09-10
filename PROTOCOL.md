@@ -25,8 +25,10 @@ An `emote/1` frame is expiring state, not a queued animation:
 
 The stable affect vocabulary is `neutral`, `happy`, `surprised`, `thinking`, `suspicious`, `sad`, `excited`,
 `love`, `error`, `listening`, `speaking`, `working`, `success`, `playful`, `encouraging`, `curious`,
-`uncertain`, `concerned`, `delighted`, `embarrassed`, and `reassuring`. The core visual readability gate
-remains neutral, thinking, happy, surprised, suspicious, and error.
+`uncertain`, `concerned`, `delighted`, `embarrassed`, `reassuring`, `shocked`, `weary`, `confused`, `blushing`,
+`nervous`, `maniacal`, `stressed`, `determined`, `bored`, `panicked`, `scheming`, `fatigued`, `content`,
+`pleading`, `sick`, `hyped`, and `baffled`. The core visual readability gate remains neutral, thinking, happy,
+surprised, suspicious, and error.
 
 Intensity is semantic, not decorative metadata. A value of `0` relaxes an affect toward neutral geometry;
 the authored intensity reproduces the canonical pose, and higher values strengthen it within renderer-safe

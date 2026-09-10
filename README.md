@@ -10,7 +10,7 @@ impression of being alive.
 ![YouAndEye Expression Bench showing the dual-controller face with its round AMOLED mouth](docs/assets/screenshots/expression-bench-amoled.png)
 
 ![Hardware tested](https://img.shields.io/badge/hardware-tested-2ea44f)
-![Tests](https://img.shields.io/badge/tests-94%2F94-2ea44f)
+![Tests](https://img.shields.io/badge/tests-95%2F95-2ea44f)
 ![ESP32](https://img.shields.io/badge/ESP32-PlatformIO-00979d)
 ![MCP](https://img.shields.io/badge/interface-MCP-7c3aed)
 ![License](https://img.shields.io/badge/license-MIT-f2c744)
@@ -49,8 +49,8 @@ AMOLED mouth studio can isolate every affect and tune bounded intensity, warmth,
 |---|---|
 | Classic Heltec WiFi Kit 32 | Runs both eye panels; its built-in OLED is the compact mouth and automatic fallback |
 | Waveshare 0.71-inch DualEye LCD | Two 160×160 GC9D01 round IPS eyes on one compact board |
-| Optional Waveshare ESP32-S3-Touch-AMOLED-1.75 | Separate 466×466 CO5300 mouth with 21 authored expressions, captions, icons, and local choreography |
-| `firmware/` | Twenty-one eye expressions, autonomous motion, synchronized beats, and the OLED fallback |
+| Optional Waveshare ESP32-S3-Touch-AMOLED-1.75 | Separate 466×466 CO5300 mouth with 38 authored expressions, captions, icons, and local choreography |
+| `firmware/` | Thirty-eight eye expressions, autonomous motion, synchronized beats, and the OLED fallback |
 | `firmware/amoled-mouth/` | USB-only semantic renderer for the optional round mouth |
 | Expression Bench | Exact-size browser playground for tuning before flashing hardware |
 | `emote/1` | Transport-independent semantic expression contract |
@@ -167,11 +167,13 @@ who just want a charming desk creature should begin with the [DIY guide](docs/DI
 
 ## Known-good release
 
-The current release provides twenty-one affects, intensity-scaled geometry, five coordinated
+The current release provides thirty-eight affects, intensity-scaled geometry, five coordinated
 character beats, a full cartoony mouth actor, smooth text scrolling, native icons, and synchronized binocular blinking.
-The round mouth distinguishes attention, thought, confidence, delight, concern, uncertainty, embarrassment,
-playfulness, love, and error through silhouette before adding teeth, tongue, thought dots, blush, sweat, hearts,
-sparkles, or alert marks. Its anticipation, moving holds, and six local speech visemes run without host keyframes.
+The concept collection adds shocked, weary, confused, blushing, nervous, maniacal, stressed, determined,
+bored, panicked, scheming, fatigued, content, pleading, sick, hyped, and baffled performances. The round mouth
+distinguishes them through silhouette before adding teeth, tongue, tears, question marks, thought dots, blush,
+sweat, hearts, sparkles, bubbles, or alert marks. Its anticipation, moving holds, and six local speech visemes
+run without host keyframes.
 Small device-owned cues add a thinking hesitation, listening attention lead, success relief, uncertainty gaze
 aversion, restrained per-eye variation, and a slow neutral attention fade that resets with new intent. Its
 paired host stack adds the local MCP/HTTP control plane, approval-gated per-agent identities, and self-timed

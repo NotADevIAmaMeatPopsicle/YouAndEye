@@ -141,6 +141,7 @@ struct EyeCommandState
   float intensity = 0.70f;
   uint8_t pupilShape = 0;
   uint8_t palette = 0;
+  uint8_t eyeEffect = 0;
   bool semanticAffectActive = true;
   emote_affect_t affect = EMOTE_NEUTRAL;
   EyeBehaviorMode mode = MODE_ATTENTIVE;
@@ -277,8 +278,15 @@ static HeltecMouthShape mouthShapeForAffect(emote_affect_t affect)
   case EMOTE_EXCITED:
   case EMOTE_LOVE:
   case EMOTE_SUCCESS:
+  case EMOTE_BLUSHING:
+  case EMOTE_CONTENT:
+  case EMOTE_HYPED:
+  case EMOTE_MANIACAL:
     return HeltecMouthShape::SMILE;
   case EMOTE_SURPRISED:
+  case EMOTE_SHOCKED:
+  case EMOTE_NERVOUS:
+  case EMOTE_PANICKED:
     return HeltecMouthShape::SURPRISED;
   case EMOTE_THINKING:
   case EMOTE_CURIOUS:
@@ -286,17 +294,27 @@ static HeltecMouthShape mouthShapeForAffect(emote_affect_t affect)
   case EMOTE_EMBARRASSED:
   case EMOTE_SUSPICIOUS:
   case EMOTE_PLAYFUL:
+  case EMOTE_CONFUSED:
+  case EMOTE_SCHEMING:
+  case EMOTE_BAFFLED:
     return profileMouthStyle == PROFILE_MOUTH_MINIMAL
                ? HeltecMouthShape::NEUTRAL
                : HeltecMouthShape::SMIRK;
   case EMOTE_SAD:
   case EMOTE_CONCERNED:
   case EMOTE_ERROR:
+  case EMOTE_WEARY:
+  case EMOTE_STRESSED:
+  case EMOTE_DETERMINED:
+  case EMOTE_FATIGUED:
+  case EMOTE_PLEADING:
+  case EMOTE_SICK:
     return HeltecMouthShape::FROWN;
   case EMOTE_SPEAKING:
     return HeltecMouthShape::SPEAKING;
   case EMOTE_LISTENING:
   case EMOTE_WORKING:
+  case EMOTE_BORED:
   case EMOTE_NEUTRAL:
   default:
     return HeltecMouthShape::NEUTRAL;
@@ -997,6 +1015,7 @@ static void applyPreset(EyePreset preset)
   commandState.intensity = 0.70f;
   commandState.pupilShape = 0;
   commandState.palette = 0;
+  commandState.eyeEffect = 0;
 
   switch (preset)
   {
@@ -1081,6 +1100,7 @@ static void applyAffectWithIntensity(emote_affect_t affect, float intensity)
   commandState.intensity = pose.intensity;
   commandState.pupilShape = pose.pupil_shape;
   commandState.palette = pose.palette;
+  commandState.eyeEffect = pose.eye_effect;
 
   semanticTarget.affect = affect;
   semanticTarget.intensity = pose.intensity;
@@ -2066,6 +2086,7 @@ static void updateRuntime()
     commandState.intensity = pose.intensity;
     commandState.pupilShape = pose.pupil_shape;
     commandState.palette = pose.palette;
+    commandState.eyeEffect = pose.eye_effect;
     return;
   }
 
@@ -2441,6 +2462,7 @@ static void renderFrame()
       leftPose.intensity = commandState.intensity;
       leftPose.pupil_shape = commandState.pupilShape;
       leftPose.palette = commandState.palette;
+      leftPose.eye_effect = commandState.eyeEffect;
       rightPose = leftPose;
 
       const float deltaX = runtimeState.lookX - previousLookX;

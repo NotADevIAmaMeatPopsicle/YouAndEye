@@ -147,6 +147,7 @@ static emote_pose_t pose_mix(emote_pose_t from, emote_pose_t to, float amount)
         .intensity = mixf(from.intensity, to.intensity, amount),
         .pupil_shape = amount < 0.5f ? from.pupil_shape : to.pupil_shape,
         .palette = amount < 0.5f ? from.palette : to.palette,
+        .eye_effect = amount < 0.5f ? from.eye_effect : to.eye_effect,
     };
     return result;
 }
@@ -167,18 +168,32 @@ static emote_pose_t semantic_pose(const emote_target_t *semantic)
 static void schedule_blink(emote_motion_t *motion, uint32_t now_ms)
 {
     uint32_t low = 2800, high = 6200;
-    if (motion->semantic.affect == EMOTE_ERROR) {
+    if (motion->semantic.affect == EMOTE_ERROR ||
+        motion->semantic.affect == EMOTE_NERVOUS ||
+        motion->semantic.affect == EMOTE_STRESSED ||
+        motion->semantic.affect == EMOTE_PANICKED) {
         low = 1200; high = 2800;
-    } else if (motion->semantic.affect == EMOTE_THINKING || motion->semantic.affect == EMOTE_WORKING) {
+    } else if (motion->semantic.affect == EMOTE_THINKING ||
+               motion->semantic.affect == EMOTE_WORKING ||
+               motion->semantic.affect == EMOTE_DETERMINED) {
         low = 3600; high = 6200;
     } else if (motion->semantic.affect == EMOTE_UNCERTAIN ||
-               motion->semantic.affect == EMOTE_EMBARRASSED) {
+               motion->semantic.affect == EMOTE_EMBARRASSED ||
+               motion->semantic.affect == EMOTE_CONFUSED ||
+               motion->semantic.affect == EMOTE_BAFFLED) {
         low = 1800; high = 3600;
     } else if (motion->semantic.affect == EMOTE_LISTENING) {
         low = 2400; high = 4400;
     } else if (motion->semantic.affect == EMOTE_EXCITED ||
-               motion->semantic.affect == EMOTE_DELIGHTED) {
+               motion->semantic.affect == EMOTE_DELIGHTED ||
+               motion->semantic.affect == EMOTE_HYPED ||
+               motion->semantic.affect == EMOTE_MANIACAL) {
         low = 2000; high = 4300;
+    } else if (motion->semantic.affect == EMOTE_WEARY ||
+               motion->semantic.affect == EMOTE_FATIGUED ||
+               motion->semantic.affect == EMOTE_BORED ||
+               motion->semantic.affect == EMOTE_CONTENT) {
+        low = 4200; high = 7600;
     } else if (motion->semantic.mode == EMOTE_MODE_SLEEPY) {
         low = 1400; high = 3300;
     }
@@ -195,17 +210,24 @@ static void schedule_blink(emote_motion_t *motion, uint32_t now_ms)
 static void schedule_saccade(emote_motion_t *motion, uint32_t now_ms)
 {
     uint32_t low = 350, high = 1250;
-    if (motion->semantic.affect == EMOTE_THINKING) {
+    if (motion->semantic.affect == EMOTE_THINKING ||
+        motion->semantic.affect == EMOTE_DETERMINED) {
         low = 1200; high = 2800;
     } else if (motion->semantic.affect == EMOTE_UNCERTAIN ||
                motion->semantic.affect == EMOTE_CONCERNED ||
-               motion->semantic.affect == EMOTE_EMBARRASSED) {
+               motion->semantic.affect == EMOTE_EMBARRASSED ||
+               motion->semantic.affect == EMOTE_CONFUSED ||
+               motion->semantic.affect == EMOTE_BAFFLED ||
+               motion->semantic.affect == EMOTE_NERVOUS) {
         low = 900; high = 2200;
     } else if (motion->semantic.affect == EMOTE_LISTENING ||
                motion->semantic.affect == EMOTE_REASSURING) {
         low = 650; high = 1500;
     } else if (motion->semantic.affect == EMOTE_PLAYFUL ||
-               motion->semantic.affect == EMOTE_EXCITED) {
+               motion->semantic.affect == EMOTE_EXCITED ||
+               motion->semantic.affect == EMOTE_HYPED ||
+               motion->semantic.affect == EMOTE_MANIACAL ||
+               motion->semantic.affect == EMOTE_PANICKED) {
         low = 250; high = 850;
     } else if (motion->semantic.mode == EMOTE_MODE_IDLE) {
         low = 1000; high = 2600;
@@ -392,7 +414,10 @@ void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds
                 (random_unit(motion) * (BLINK_RIGHT_SCALE_MAX - BLINK_RIGHT_SCALE_MIN));
             float double_chance = motion->semantic.affect == EMOTE_ERROR ? 0.34f : 0.18f;
             if (motion->semantic.affect == EMOTE_UNCERTAIN ||
-                motion->semantic.affect == EMOTE_EMBARRASSED) double_chance = 0.30f;
+                motion->semantic.affect == EMOTE_EMBARRASSED ||
+                motion->semantic.affect == EMOTE_CONFUSED ||
+                motion->semantic.affect == EMOTE_NERVOUS ||
+                motion->semantic.affect == EMOTE_PANICKED) double_chance = 0.30f;
             motion->double_blink_pending = random_unit(motion) < double_chance;
         }
         if (now_ms >= motion->next_saccade_ms) {
@@ -400,17 +425,23 @@ void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds
             const float wander_scale = mixf(1.0f, ATTENTION_DECAY_WANDER_SCALE, decay);
             const float profile_gaze_scale = gaze_amplitude_scale(motion);
             const bool big = random_unit(motion) < clampf(0.28f * profile_gaze_scale, 0.12f, 0.44f);
-            const bool glance_back = motion->semantic.affect == EMOTE_THINKING && random_unit(motion) < 0.34f;
+            const bool glance_back = (motion->semantic.affect == EMOTE_THINKING ||
+                                      motion->semantic.affect == EMOTE_CONFUSED ||
+                                      motion->semantic.affect == EMOTE_BAFFLED) &&
+                                     random_unit(motion) < 0.34f;
             const float random_x = (random_unit(motion) * 2.0f) - 1.0f;
             const float random_y = (random_unit(motion) * 2.0f) - 1.0f;
             if (motion->semantic.affect == EMOTE_LISTENING || motion->semantic.affect == EMOTE_REASSURING) {
                 motion->saccade_target_x = random_x * 0.035f;
                 motion->saccade_target_y = random_y * 0.025f;
             } else if (motion->semantic.affect == EMOTE_UNCERTAIN ||
-                       motion->semantic.affect == EMOTE_CONCERNED) {
+                       motion->semantic.affect == EMOTE_CONCERNED ||
+                       motion->semantic.affect == EMOTE_NERVOUS ||
+                       motion->semantic.affect == EMOTE_PLEADING) {
                 motion->saccade_target_x = -0.08f + (random_x * 0.06f);
                 motion->saccade_target_y = 0.04f + (random_y * 0.04f);
-            } else if (motion->semantic.affect == EMOTE_EMBARRASSED) {
+            } else if (motion->semantic.affect == EMOTE_EMBARRASSED ||
+                       motion->semantic.affect == EMOTE_BLUSHING) {
                 motion->saccade_target_x = 0.08f + (random_x * 0.05f);
                 motion->saccade_target_y = 0.06f + (random_y * 0.035f);
             } else {
@@ -471,6 +502,7 @@ void emote_motion_step(emote_motion_t *motion, uint32_t now_ms, float dt_seconds
     motion->current.intensity = target.intensity;
     motion->current.pupil_shape = target.pupil_shape;
     motion->current.palette = target.palette;
+    motion->current.eye_effect = target.eye_effect;
 
     const float gaze_error = fmaxf(fabsf(motion->current.gaze_x - target.gaze_x), fabsf(motion->current.gaze_y - target.gaze_y));
     const float gaze_velocity = fmaxf(fabsf(motion->velocity.gaze_x), fabsf(motion->velocity.gaze_y));
@@ -552,7 +584,10 @@ emote_pose_t emote_motion_render_pose(const emote_motion_t *motion, bool left_ey
 
     const uint32_t elapsed = now_ms - motion->transition_started_ms;
     const float pi = 3.14159265358979323846f;
-    if (motion->semantic.affect == EMOTE_THINKING && motion->reaction_ms > 0u && elapsed < motion->reaction_ms) {
+    if ((motion->semantic.affect == EMOTE_THINKING ||
+         motion->semantic.affect == EMOTE_CONFUSED ||
+         motion->semantic.affect == EMOTE_BAFFLED) &&
+        motion->reaction_ms > 0u && elapsed < motion->reaction_ms) {
         const float hesitation = sinf(pi * (float)elapsed / (float)motion->reaction_ms);
         pose.open = clampf(pose.open + (0.025f * hesitation), 0.02f, 1.30f);
         pose.pupil = clampf(pose.pupil - (0.018f * hesitation), 0.12f, 0.86f);
@@ -562,7 +597,9 @@ emote_pose_t emote_motion_render_pose(const emote_motion_t *motion, bool left_ey
         pose.pupil = clampf(pose.pupil + (0.025f * attention), 0.12f, 0.86f);
     } else if ((motion->semantic.affect == EMOTE_SUCCESS ||
                 motion->semantic.affect == EMOTE_ENCOURAGING ||
-                motion->semantic.affect == EMOTE_DELIGHTED) &&
+                motion->semantic.affect == EMOTE_DELIGHTED ||
+                motion->semantic.affect == EMOTE_CONTENT ||
+                motion->semantic.affect == EMOTE_BLUSHING) &&
                elapsed >= 650u && elapsed < 1450u) {
         const float relief = sinf(pi * (float)(elapsed - 650u) / 800.0f);
         pose.open = clampf(pose.open - (0.055f * relief), 0.02f, 1.30f);
@@ -570,10 +607,28 @@ emote_pose_t emote_motion_render_pose(const emote_motion_t *motion, bool left_ey
         pose.pupil = clampf(pose.pupil + (0.020f * relief), 0.12f, 0.86f);
     } else if (motion->semantic.affect == EMOTE_UNCERTAIN ||
                motion->semantic.affect == EMOTE_CONCERNED ||
-               motion->semantic.affect == EMOTE_EMBARRASSED) {
+               motion->semantic.affect == EMOTE_EMBARRASSED ||
+               motion->semantic.affect == EMOTE_BLUSHING) {
         const float aversion = sinf(((float)elapsed / 1000.0f) * 1.7f);
         pose.gaze_x += aversion * 0.018f;
         pose.gaze_y += fabsf(aversion) * 0.010f;
+    } else if (motion->semantic.affect == EMOTE_NERVOUS ||
+               motion->semantic.affect == EMOTE_STRESSED ||
+               motion->semantic.affect == EMOTE_PANICKED) {
+        const float tremble = sinf((float)elapsed / 48.0f) *
+                              (0.008f + motion->modifiers.urgency * 0.012f);
+        pose.gaze_x += tremble;
+        pose.gaze_y -= tremble * 0.55f;
+        pose.open = clampf(pose.open + fabsf(tremble), 0.02f, 1.30f);
+    } else if (motion->semantic.affect == EMOTE_MANIACAL ||
+               motion->semantic.affect == EMOTE_HYPED) {
+        pose.pupil = clampf(pose.pupil + sinf((float)elapsed / 85.0f) * 0.025f, 0.12f, 0.86f);
+    } else if (motion->semantic.affect == EMOTE_PLEADING) {
+        pose.pupil = clampf(pose.pupil + sinf((float)elapsed / 420.0f) * 0.018f, 0.12f, 0.86f);
+    } else if (motion->semantic.affect == EMOTE_WEARY ||
+               motion->semantic.affect == EMOTE_FATIGUED ||
+               motion->semantic.affect == EMOTE_BORED) {
+        pose.gaze_y += fabsf(sinf((float)elapsed / 1500.0f)) * 0.012f;
     } else if (motion->semantic.affect == EMOTE_REASSURING) {
         const float calm = sinf(((float)elapsed / 1000.0f) * 1.1f);
         pose.pupil = clampf(pose.pupil + (calm * 0.012f), 0.12f, 0.86f);
