@@ -86,6 +86,8 @@ static iris_palette_t palette_for(uint8_t palette)
         return (iris_palette_t){rgb565(112, 70, 10), rgb565(192, 126, 24), rgb565(255, 210, 78), rgb565(48, 26, 2)};
     case 5:
         return (iris_palette_t){rgb565(66, 28, 104), rgb565(130, 70, 190), rgb565(202, 128, 255), rgb565(28, 8, 48)};
+    case 6:
+        return (iris_palette_t){rgb565(18, 90, 88), rgb565(46, 150, 146), rgb565(80, 212, 206), rgb565(6, 40, 40)};
     default:
         return (iris_palette_t){rgb565(17, 52, 106), rgb565(48, 112, 190), rgb565(86, 174, 244), rgb565(4, 14, 34)};
     }

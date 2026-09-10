@@ -277,6 +277,7 @@ class HeltecDevice:
         self._identity: DeviceIdentity | None = None
         self._port_lease: PortLease | None = None
         self._connection_generation = 0
+        self._boot_nonce: Any = None
         self._last_activity_s = self._monotonic()
         self._consecutive_failures = 0
         self._circuit_until_s = 0.0
@@ -298,6 +299,16 @@ class HeltecDevice:
     def connection_generation(self) -> int:
         with self._lock:
             return self._connection_generation
+
+    @property
+    def boot_nonce(self) -> Any:
+        """Identity of the board's current boot, or None on firmware without one.
+
+        A reboot replaces this, which is how a caller distinguishes a board that
+        has lost its pushed state from one that is still holding it.
+        """
+        with self._lock:
+            return self._boot_nonce
 
     def _yield_requested_locked(self) -> bool:
         if self._yield_path is None or not self._yield_path.exists():
@@ -408,6 +419,11 @@ class HeltecDevice:
             enumerator=self._enumerator,
         )
 
+    def _record_boot_nonce(self, status_line: str) -> None:
+        boot = _parse_fields(status_line).get("boot")
+        if boot is not None:
+            self._boot_nonce = boot
+
     def _validate_status_signature(self, status_line: str) -> None:
         required_markers = (
             "renderer=",
@@ -482,6 +498,7 @@ class HeltecDevice:
                 (line for line in lines if line.startswith("STATUS ")), ""
             )
             self._validate_status_signature(status_line)
+            self._record_boot_nonce(status_line)
         except Exception:
             try:
                 if connection is not None:
@@ -608,10 +625,14 @@ class HeltecDevice:
                     required_prefixes=prefixes,
                 )
                 self._record_success_locked()
+                parsed = self._parse_status(lines)
+                runtime = parsed.get("runtime")
+                if isinstance(runtime, dict) and runtime.get("boot") is not None:
+                    self._boot_nonce = runtime["boot"]
                 return {
                     "connected": True,
                     "device": self._identity.as_dict(),
-                    **self._parse_status(lines),
+                    **parsed,
                 }
             except Exception as exc:
                 error = self._normalize_error(exc)

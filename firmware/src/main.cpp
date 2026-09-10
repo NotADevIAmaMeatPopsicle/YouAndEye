@@ -150,6 +150,8 @@ struct EyeCommandState
   RgbColor irisInner = {112, 171, 214};
   RgbColor irisRing = {21, 37, 63};
   RgbColor irisHighlight = {179, 213, 236};
+  bool irisProfileLocked = false;
+  uint8_t irisPalette = 0;
 };
 
 struct EyeRuntimeState
@@ -1005,6 +1007,102 @@ static void applyIrisBaseColor(const RgbColor &base)
   commandState.irisHighlight = mixColor(base, makeColor(235, 245, 255), 0.55f);
 }
 
+// Regenerated on every boot so a host can tell a rebooted board from a live one.
+static uint32_t bootNonce = 0;
+
+struct IrisIdentity
+{
+  const char *name;
+  uint8_t palette;
+  RgbColor base;
+};
+
+// The host names an identity colour; the surface owns what that colour actually is.
+// Index 2 is deliberately absent: it is the expressive red that affects reach for.
+static const IrisIdentity kIrisIdentities[] = {
+    {"AZURE", 0, {70, 160, 238}},
+    {"ROSE", 1, {220, 105, 148}},
+    {"EMERALD", 3, {76, 188, 126}},
+    {"AMBER", 4, {232, 165, 62}},
+    {"VIOLET", 5, {145, 108, 224}},
+    {"TEAL", 6, {54, 190, 184}},
+};
+
+static bool lookupIrisIdentity(const char *name, uint8_t &palette, RgbColor &base)
+{
+  for (size_t i = 0; i < sizeof(kIrisIdentities) / sizeof(kIrisIdentities[0]); ++i)
+  {
+    if (tokenEquals(name, kIrisIdentities[i].name))
+    {
+      palette = kIrisIdentities[i].palette;
+      base = kIrisIdentities[i].base;
+      return true;
+    }
+  }
+  return false;
+}
+
+static void applyIrisIdentity(uint8_t palette, const RgbColor &base)
+{
+  commandState.irisProfileLocked = true;
+  commandState.irisPalette = palette;
+  commandState.palette = palette;
+  applyIrisBaseColor(base);
+}
+
+static uint8_t nearestIrisPaletteIndex(const RgbColor &base)
+{
+  // The SDF renderer picks its iris from a curated table rather than a free RGB,
+  // so map the host's requested colour onto the closest entry. Representatives are
+  // the mid-band of each palette in palette_for().
+  static const RgbColor representatives[] = {
+      {48, 112, 190},  // 0 blue
+      {181, 54, 116},  // 1 rose
+      {170, 56, 48},   // 2 red
+      {53, 151, 105},  // 3 green
+      {192, 126, 24},  // 4 amber
+      {130, 70, 190},  // 5 violet
+  };
+  uint8_t best = 0;
+  long bestDistance = -1;
+  for (uint8_t i = 0; i < (uint8_t)(sizeof(representatives) / sizeof(representatives[0])); ++i)
+  {
+    const long dr = (long)base.r - (long)representatives[i].r;
+    const long dg = (long)base.g - (long)representatives[i].g;
+    const long db = (long)base.b - (long)representatives[i].b;
+    const long distance = dr * dr + dg * dg + db * db;
+    if (bestDistance < 0 || distance < bestDistance)
+    {
+      bestDistance = distance;
+      best = i;
+    }
+  }
+  return best;
+}
+
+static uint8_t resolveIrisPalette(uint8_t posePalette)
+{
+  // A non-zero pose palette is a deliberate expressive choice (error runs red) and
+  // keeps precedence. Palette 0 means the affect has no opinion, which is where an
+  // identity profile's iris belongs instead of the renderer's blue default.
+  if (posePalette != 0)
+  {
+    return posePalette;
+  }
+  return commandState.irisProfileLocked ? commandState.irisPalette : 0;
+}
+
+static void applyPresetIrisBaseColor(const RgbColor &base)
+{
+  // Presets own geometry; an identity profile owns colour. Once a host has sent
+  // an explicit IRIS, a later preset must not repaint the eye out from under it.
+  if (commandState.irisProfileLocked)
+  {
+    return;
+  }
+  applyIrisBaseColor(base);
+}
+
 static void applyPreset(EyePreset preset)
 {
   commandState.preset = preset;
@@ -1014,7 +1112,7 @@ static void applyPreset(EyePreset preset)
   commandState.arc = 0.0f;
   commandState.intensity = 0.70f;
   commandState.pupilShape = 0;
-  commandState.palette = 0;
+  commandState.palette = resolveIrisPalette(0);
   commandState.eyeEffect = 0;
 
   switch (preset)
@@ -1027,7 +1125,7 @@ static void applyPreset(EyePreset preset)
     commandState.browRotation = 0.02f;
     commandState.lowerLidLift = 0.16f;
     commandState.intensity = 0.92f;
-    applyIrisBaseColor(makeColor(62, 146, 204));
+    applyPresetIrisBaseColor(makeColor(62, 146, 204));
     break;
 
   case PRESET_SLEEPY:
@@ -1039,7 +1137,7 @@ static void applyPreset(EyePreset preset)
     commandState.lowerLidLift = 0.20f;
     commandState.asymmetry = 0.07f;
     commandState.intensity = 0.65f;
-    applyIrisBaseColor(makeColor(109, 86, 56));
+    applyPresetIrisBaseColor(makeColor(109, 86, 56));
     break;
 
   case PRESET_CURIOUS:
@@ -1051,7 +1149,7 @@ static void applyPreset(EyePreset preset)
     commandState.lowerLidLift = 0.14f;
     commandState.asymmetry = 0.13f;
     commandState.intensity = 0.72f;
-    applyIrisBaseColor(makeColor(84, 161, 116));
+    applyPresetIrisBaseColor(makeColor(84, 161, 116));
     break;
 
   case PRESET_FOCUSED:
@@ -1063,7 +1161,7 @@ static void applyPreset(EyePreset preset)
     commandState.lowerLidLift = 0.12f;
     commandState.asymmetry = 0.08f;
     commandState.intensity = 0.76f;
-    applyIrisBaseColor(makeColor(84, 129, 188));
+    applyPresetIrisBaseColor(makeColor(84, 129, 188));
     break;
 
   case PRESET_NATURAL:
@@ -1073,7 +1171,7 @@ static void applyPreset(EyePreset preset)
     commandState.targetFocus = 0.18f;
     commandState.browLift = 0.0f;
     commandState.lowerLidLift = 0.10f;
-    applyIrisBaseColor(makeColor(76, 125, 176));
+    applyPresetIrisBaseColor(makeColor(76, 125, 176));
     break;
   }
 }
@@ -1099,7 +1197,7 @@ static void applyAffectWithIntensity(emote_affect_t affect, float intensity)
   commandState.arc = pose.arc;
   commandState.intensity = pose.intensity;
   commandState.pupilShape = pose.pupil_shape;
-  commandState.palette = pose.palette;
+  commandState.palette = resolveIrisPalette(pose.palette);
   commandState.eyeEffect = pose.eye_effect;
 
   semanticTarget.affect = affect;
@@ -1317,7 +1415,7 @@ static void printHelp()
   Serial.println("  PIPELINE ON|OFF       dual-core SDF rendering fallback");
   Serial.println("  DISPLAY LIVE|TEST|LEFT|RIGHT  static panel-path diagnostic");
   Serial.println("  ORIENT <left 0..3> <right 0..3>  live panel rotation");
-  Serial.println("  IRIS <r> <g> <b>      range 0..255");
+  Serial.println("  IRIS <name|r g b>     palette name, or rgb 0..255");
   Serial.println("  BLINK");
   Serial.println("  CENTER");
 }
@@ -1325,7 +1423,7 @@ static void printHelp()
 static void printStatus()
 {
   Serial.printf(
-      "STATUS renderer=%s pipeline=%d/%d display=%s rotations=%u,%u mouth=%d/%s affect=%s autonomy=%d mode=%s preset=%s targetLookX=%.2f targetLookY=%.2f liveLookX=%.2f liveLookY=%.2f pupil=%.2f open=%.2f focus=%.2f blink=%.2f frameUs=%lu computeUs=%lu transferUs=%lu maxFrameUs=%lu fps=%.1f misses=%lu shaded=%lu iris=%u,%u,%u profile=%s/%s/%s/%s energy=%.2f\n",
+      "STATUS renderer=%s pipeline=%d/%d display=%s rotations=%u,%u mouth=%d/%s affect=%s autonomy=%d mode=%s preset=%s targetLookX=%.2f targetLookY=%.2f liveLookX=%.2f liveLookY=%.2f pupil=%.2f open=%.2f focus=%.2f blink=%.2f frameUs=%lu computeUs=%lu transferUs=%lu maxFrameUs=%lu fps=%.1f misses=%lu shaded=%lu iris=%u,%u,%u profile=%s/%s/%s/%s energy=%.2f palette=%u boot=%lu\n",
       rendererLabel(),
       parallelRendererEnabled ? 1 : 0,
       parallelRendererReady ? 1 : 0,
@@ -1360,7 +1458,9 @@ static void printStatus()
       gazeStyleLabel(activePersonality.gaze_style),
       idleStyleLabel(activePersonality.idle_style),
       profileMouthStyleLabel(profileMouthStyle),
-      activePersonality.energy);
+      activePersonality.energy,
+      commandState.palette,
+      (unsigned long)bootNonce);
 }
 
 static void printMotionStatus()
@@ -1709,22 +1809,33 @@ static void processCommand(char *line)
 
   if (tokenEquals(token, "IRIS"))
   {
-    float r = 0.0f;
-    float g = 0.0f;
-    float b = 0.0f;
-    if (parseFloatToken(strtok(nullptr, " \t"), r) &&
-        parseFloatToken(strtok(nullptr, " \t"), g) &&
-        parseFloatToken(strtok(nullptr, " \t"), b))
+    char *first = strtok(nullptr, " \t");
+    uint8_t namedPalette = 0;
+    RgbColor namedBase = makeColor(0, 0, 0);
+    if (lookupIrisIdentity(first, namedPalette, namedBase))
     {
-      applyIrisBaseColor(makeColor(
-          (uint8_t)clampf(r, 0.0f, 255.0f),
-          (uint8_t)clampf(g, 0.0f, 255.0f),
-          (uint8_t)clampf(b, 0.0f, 255.0f)));
+      applyIrisIdentity(namedPalette, namedBase);
       Serial.printf("OK IRIS %u %u %u\n", commandState.irisInner.r, commandState.irisInner.g, commandState.irisInner.b);
       return;
     }
 
-    Serial.println("ERR IRIS expects three 0..255 values");
+    float r = 0.0f;
+    float g = 0.0f;
+    float b = 0.0f;
+    if (parseFloatToken(first, r) &&
+        parseFloatToken(strtok(nullptr, " \t"), g) &&
+        parseFloatToken(strtok(nullptr, " \t"), b))
+    {
+      const RgbColor irisBase = makeColor(
+          (uint8_t)clampf(r, 0.0f, 255.0f),
+          (uint8_t)clampf(g, 0.0f, 255.0f),
+          (uint8_t)clampf(b, 0.0f, 255.0f));
+      applyIrisIdentity(nearestIrisPaletteIndex(irisBase), irisBase);
+      Serial.printf("OK IRIS %u %u %u\n", commandState.irisInner.r, commandState.irisInner.g, commandState.irisInner.b);
+      return;
+    }
+
+    Serial.println("ERR IRIS expects a palette name or three 0..255 values");
     return;
   }
 
@@ -2085,7 +2196,7 @@ static void updateRuntime()
     commandState.arc = pose.arc;
     commandState.intensity = pose.intensity;
     commandState.pupilShape = pose.pupil_shape;
-    commandState.palette = pose.palette;
+    commandState.palette = resolveIrisPalette(pose.palette);
     commandState.eyeEffect = pose.eye_effect;
     return;
   }
@@ -2443,6 +2554,11 @@ static void renderFrame()
       const uint32_t now = millis();
       leftPose = emote_motion_render_pose(&semanticMotion, true, now);
       rightPose = emote_motion_render_pose(&semanticMotion, false, now);
+      // The motion library owns expressive palettes; 0 means it has no opinion,
+      // which is where the active identity belongs. Without this the semantic
+      // path renders the default iris no matter what profile is applied.
+      leftPose.palette = resolveIrisPalette(leftPose.palette);
+      rightPose.palette = resolveIrisPalette(rightPose.palette);
       const emote_motion_telemetry_t *metrics = emote_motion_telemetry(&semanticMotion);
       gazeVelocityX = metrics ? metrics->gaze_velocity_x : 0.0f;
       gazeVelocityY = metrics ? metrics->gaze_velocity_y : 0.0f;
@@ -2579,6 +2695,7 @@ static void reportFrameTelemetry(unsigned long now)
 
 void setup()
 {
+  bootNonce = (uint32_t)esp_random();
   Serial.begin(115200);
   delay(600);
 

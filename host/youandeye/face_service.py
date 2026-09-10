@@ -94,6 +94,7 @@ class ExpressionService:
         self._last_dispatched: tuple[str, str, int] | tuple[str] | None = None
         self._applied_profile_key: tuple[str, int] | None = None
         self._applied_connection_generation: int | None = None
+        self._applied_boot_nonce: Any = None
         self._performance_time_scale = max(0.0, performance_time_scale)
         self._performance_thread: threading.Thread | None = None
         self._performance_cancel: threading.Event | None = None
@@ -358,10 +359,9 @@ class ExpressionService:
         if profile is None:
             if self._applied_profile_key is None:
                 return [], None
-            rgb = IRIS_PALETTES["azure"]
             return [
                 "PROFILE NATURAL ATTENTIVE CALM EXPRESSIVE 0.50",
-                f"IRIS {rgb[0]} {rgb[1]} {rgb[2]}",
+                "IRIS AZURE",
             ], None
 
         if "appearance" in profile:
@@ -386,12 +386,18 @@ class ExpressionService:
             }
 
         generation = getattr(self.device, "connection_generation", None)
-        if key == self._applied_profile_key and generation == self._applied_connection_generation:
+        boot = getattr(self.device, "boot_nonce", None)
+        # A rebooted board has silently dropped everything pushed to it, so the
+        # cached key alone is not evidence the identity is still applied.
+        if (
+            key == self._applied_profile_key
+            and generation == self._applied_connection_generation
+            and boot == self._applied_boot_nonce
+        ):
             return [], key
         iris_name = str(appearance["iris_palette"])
         if iris_name not in IRIS_PALETTES:
             iris_name = "azure"
-        rgb = IRIS_PALETTES[iris_name]
         profile_command = "PROFILE {} {} {} {} {:.2f}".format(
             str(temperament["blink_style"]).upper(),
             str(temperament["gaze_style"]).upper(),
@@ -399,7 +405,7 @@ class ExpressionService:
             str(appearance["mouth_style"]).upper(),
             float(temperament["default_energy"]),
         )
-        return [profile_command, f"IRIS {rgb[0]} {rgb[1]} {rgb[2]}"], key
+        return [profile_command, f"IRIS {iris_name.upper()}"], key
 
     def _wait_for_beat(self, beat: Mapping[str, Any], cancel: threading.Event) -> bool:
         """Wait for a semantic beat, preferring physical OLED completion feedback."""
@@ -465,8 +471,17 @@ class ExpressionService:
             mouth_error: dict[str, Any] | None = None
             if external_mouth and self.mouth_device is not None:
                 try:
+                    # The eyes receive the profile through _profile_commands. The mouth reads
+                    # it out of the frame, so it needs the trusted context or it silently
+                    # falls back to the default accent.
+                    mouth_profile = self._active_profile(self.agent_id)
+                    mouth_frame = (
+                        self._trusted_context(frame, mouth_profile, None)
+                        if mouth_profile is not None
+                        else frame
+                    )
                     mouth_receipt = self.mouth_device.send_commands(
-                        commands_for_amoled(frame)
+                        commands_for_amoled(mouth_frame)
                     )
                 except DeviceError as exc:
                     mouth_error = exc.as_dict()
@@ -480,6 +495,9 @@ class ExpressionService:
                 self._applied_profile_key = profile_key
                 self._applied_connection_generation = getattr(
                     self.device, "connection_generation", None
+                )
+                self._applied_boot_nonce = getattr(
+                    self.device, "boot_nonce", None
                 )
             delivery = {"sent": True, **receipt}
             if mouth_receipt is not None:

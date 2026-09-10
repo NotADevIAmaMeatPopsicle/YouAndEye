@@ -38,6 +38,17 @@ class RecordingDevice:
         self.closed = True
 
 
+class RebootingDevice(RecordingDevice):
+    """A board that can report a new boot identity, as a real one does after a reset."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.boot_nonce = 1111
+
+    def reboot(self) -> None:
+        self.boot_nonce += 1
+
+
 class ScrollFeedbackDevice(RecordingDevice):
     def __init__(self) -> None:
         super().__init__()
@@ -98,6 +109,39 @@ class IdentityLifecycleTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.service.close()
 
+    def test_profile_is_repushed_after_the_board_reboots(self) -> None:
+        # A reboot drops everything pushed to the board while the host cache still
+        # claims the identity is applied, leaving the face on its safe default.
+        device = RebootingDevice()
+        profile = build_profile(
+            "agent.alpha",
+            changes={"appearance": {"iris_palette": "emerald"}},
+        )
+        active = dict(profile)
+        active["lifecycle"] = "active"
+        self.store.put(active)
+        service = ExpressionService(
+            device,  # type: ignore[arg-type]
+            source_id="agent.alpha",
+            agent_id="agent.alpha",
+            profile_store=self.store,
+            session_id="reboot-test",
+            schedule_expiry=False,
+            performance_time_scale=0,
+        )
+        try:
+            service.express(affect="neutral")
+            self.assertIn("IRIS EMERALD", device.batches[-1], device.batches)
+
+            service.express(affect="happy")
+            self.assertNotIn("IRIS EMERALD", device.batches[-1], device.batches)
+
+            device.reboot()
+            service.express(affect="thinking")
+            self.assertIn("IRIS EMERALD", device.batches[-1], device.batches)
+        finally:
+            service.close()
+
     def test_first_run_safe_default_then_full_approval_lifecycle(self) -> None:
         self.assertEqual("profile_required", self.service.profile_status()["status"])
         legacy = self.service.express(affect="neutral")
@@ -145,7 +189,7 @@ class IdentityLifecycleTests(unittest.TestCase):
         self.assertEqual("active", activated["status"])
         self.assertEqual("completed", activated["acknowledgement"]["status"])
         self.assertTrue(
-            any("IRIS 145 108 224" in batch for batch in self.device.batches),
+            any("IRIS VIOLET" in batch for batch in self.device.batches),
             self.device.batches,
         )
 
@@ -167,7 +211,7 @@ class IdentityLifecycleTests(unittest.TestCase):
                 "PROFILE GENTLE SOFT CALM MINIMAL 0.42",
                 resumed_device.batches[-1][0],
             )
-            self.assertEqual("IRIS 145 108 224", resumed_device.batches[-1][1])
+            self.assertEqual("IRIS VIOLET", resumed_device.batches[-1][1])
         finally:
             resumed.close()
 
@@ -222,8 +266,8 @@ class IdentityLifecycleTests(unittest.TestCase):
         try:
             alpha_service.express(affect="neutral")
             beta_service.express(affect="neutral")
-            self.assertEqual("IRIS 54 190 184", alpha_device.batches[-1][1])
-            self.assertEqual("IRIS 232 165 62", beta_device.batches[-1][1])
+            self.assertEqual("IRIS TEAL", alpha_device.batches[-1][1])
+            self.assertEqual("IRIS AMBER", beta_device.batches[-1][1])
         finally:
             alpha_service.close()
             beta_service.close()
