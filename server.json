@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.notadeviamameatpopsicle/youandeye",
+  "title": "YouAndEye",
+  "description": "Drive a physical expressive face over MCP. Semantic affects, bounded identity profiles, and self-timed multi-beat performances on dual round IPS eyes and an optional round AMOLED mouth.",
+  "version": "0.5.0",
+  "repository": {
+    "url": "https://github.com/NotADevIAmaMeatPopsicle/YouAndEye",
+    "source": "github"
+  },
+  "websiteUrl": "https://notadeviamameatpopsicle.github.io/YouAndEye/simulator/",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "youandeye-host",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "YOUANDEYE_PORT",
+          "description": "Explicit serial port, or 'auto' for safe single-device discovery.",
+          "isRequired": false
+        },
+        {
+          "name": "YOUANDEYE_AMOLED_MODE",
+          "description": "Discover the optional round mouth, or 'off' to force the built-in OLED.",
+          "isRequired": false
+        },
+        {
+          "name": "YOUANDEYE_AGENT_ID",
+          "description": "Stable identity used to select a local profile.",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
