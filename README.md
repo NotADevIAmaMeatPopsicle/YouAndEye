@@ -20,6 +20,8 @@ impression of being alive.
 
 </div>
 
+<!-- mcp-name: io.github.notadeviamameatpopsicle/youandeye -->
+
 ## Hello, little face
 
 YouAndEye is an expressive physical face for local or cloud-connected AI agents. The agent says *what it
